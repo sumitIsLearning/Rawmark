@@ -1,0 +1,17 @@
+{
+    "name": "rawmark/rawmark",
+    "description": "Dev tooling for Rawmark (PHPUnit). Not shipped - see BUILD-AND-RELEASE.md. Rawmark has no runtime PHP dependencies.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "wp-phpunit/wp-phpunit": "^6.4",
+        "yoast/phpunit-polyfills": "^2.0"
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}

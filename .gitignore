@@ -1,0 +1,6 @@
+_planning/
+docs
+node_modules/
+vendor/
+assets/dist/
+.code-review-graph/

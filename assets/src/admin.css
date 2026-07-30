@@ -1,0 +1,415 @@
+/* ===== wp-admin chrome resets, editor screen only =====
+   The editor is a full-height app screen, so the surrounding admin layout
+   has to stop reserving space below it. Without these the status bar is
+   pushed under the viewport edge by #wpbody-content's bottom padding and
+   the absolutely-positioned #wpfooter. Gated on the body class added by
+   EditorScreen::add_body_class so nothing here touches another screen. */
+body.rawmark-editor-screen #wpcontent {
+	padding-left: 0;
+}
+body.rawmark-editor-screen #wpbody-content {
+	padding-bottom: 0;
+}
+body.rawmark-editor-screen #wpfooter {
+	display: none;
+}
+/* Admin notices injected by other plugins would push the 100vh box down
+   and reintroduce the clipping. Hidden here the same way the block editor
+   hides them on its own full-screen surface. */
+body.rawmark-editor-screen #wpbody-content > .notice,
+body.rawmark-editor-screen #wpbody-content > .update-nag,
+body.rawmark-editor-screen #wpbody-content > .updated,
+body.rawmark-editor-screen #wpbody-content > .error {
+	display: none;
+}
+
+.rawmark-editor-root {
+	/* Trimmed from the Rawmark Editor design's token set - only what the
+	   editor chrome actually uses. Scoped here rather than :root so this
+	   never leaks into the rest of wp-admin even though Assets.php already
+	   only enqueues this file on our own screen. */
+	--rm-primary: #0075de;
+	--rm-primary-active: #005bab;
+	--rm-on-primary: #ffffff;
+	--rm-canvas-soft: #f6f5f4;
+	--rm-surface: #ffffff;
+	--rm-ink: #191919;
+	--rm-ink-secondary: #4b4b4b;
+	--rm-ink-muted: #6b6b6b;
+	--rm-ink-faint: #8b8b86;
+	--rm-hairline: #e6e6e6;
+	--rm-hairline-strong: #e0ded9;
+	--rm-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+	--rm-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+	--rm-radius-sm: 5px;
+	--rm-radius-md: 6px;
+	--rm-radius-lg: 8px;
+	--rm-shadow-soft: 0 1px 2px rgba(15, 15, 15, .04), 0 8px 24px rgba(15, 15, 15, .06);
+
+	display: flex;
+	flex-direction: column;
+	/* Admin bar is 32px on desktop, 46px below 782px (WP core admin-bar.css). */
+	height: calc(100vh - 32px);
+	min-height: 480px;
+	background: var(--rm-surface);
+	color: var(--rm-ink);
+	font-family: var(--rm-sans);
+	font-size: 13px;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+.rawmark-editor-root *,
+.rawmark-editor-root *::before,
+.rawmark-editor-root *::after {
+	box-sizing: border-box;
+}
+
+@media screen and (max-width: 782px) {
+	.rawmark-editor-root {
+		height: calc(100vh - 46px);
+	}
+}
+
+.rawmark-editor {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+/* ===== Top bar ===== */
+.rawmark-editor__topbar {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	height: 52px;
+	padding: 0 16px;
+	border-bottom: 1px solid var(--rm-hairline);
+	background: var(--rm-surface);
+	flex: 0 0 auto;
+}
+.rawmark-editor__brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+.rawmark-editor__logo {
+	width: 22px;
+	height: 22px;
+	border-radius: var(--rm-radius-md);
+	background: var(--rm-ink);
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 13px;
+	flex: 0 0 auto;
+}
+.rawmark-editor__wordmark {
+	font-family: var(--rm-mono);
+	color: var(--rm-ink-muted);
+	font-size: 12px;
+	letter-spacing: -.2px;
+}
+.rawmark-editor__sep {
+	color: #d5d3cf;
+}
+.rawmark-editor__title-input {
+	border: 1px solid transparent;
+	border-radius: 4px;
+	padding: 5px 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--rm-ink);
+	font-family: inherit;
+	min-width: 120px;
+	width: 220px;
+	background: transparent;
+}
+.rawmark-editor__title-input:hover {
+	border-color: var(--rm-hairline);
+}
+.rawmark-editor__title-input:focus {
+	border-color: var(--rm-primary);
+	outline: none;
+	background: #fff;
+}
+.rawmark-editor__topbar-right {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.rawmark-editor__status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--rm-ink-muted);
+}
+.rawmark-editor__dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+	display: inline-block;
+}
+
+.rawmark-editor__btn {
+	height: 32px;
+	padding: 0 14px;
+	border: 1px solid var(--rm-hairline-strong);
+	border-radius: var(--rm-radius-md);
+	background: #fff;
+	color: var(--rm-ink);
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+}
+.rawmark-editor__btn:hover {
+	background: var(--rm-canvas-soft);
+}
+.rawmark-editor__btn--primary {
+	padding: 0 16px;
+	border-color: var(--rm-primary);
+	background: var(--rm-primary);
+	color: var(--rm-on-primary);
+	font-weight: 600;
+}
+.rawmark-editor__btn--primary:hover {
+	background: var(--rm-primary-active);
+	border-color: var(--rm-primary-active);
+}
+.rawmark-editor__btn--primary:active {
+	transform: scale(.97);
+}
+
+/* ===== Toolbar ===== */
+.rawmark-editor__toolbar {
+	display: flex;
+	align-items: center;
+	height: 40px;
+	padding: 0 8px 0 12px;
+	border-bottom: 1px solid var(--rm-hairline);
+	background: var(--rm-canvas-soft);
+	flex: 0 0 auto;
+	gap: 8px;
+}
+.rawmark-editor__tabs {
+	display: flex;
+	align-items: stretch;
+	gap: 2px;
+	height: 100%;
+}
+.rm-tab {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 100%;
+	padding: 0 12px;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	font-family: var(--rm-mono);
+	font-size: 12px;
+	letter-spacing: .02em;
+	color: var(--rm-ink-muted);
+	font-weight: 500;
+}
+.rm-tab:hover {
+	background: #efeeec;
+}
+.rawmark-editor__tab--active {
+	color: var(--rm-ink);
+	font-weight: 700;
+}
+.rawmark-editor__tab--active::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	bottom: -1px;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--rm-primary);
+}
+.rawmark-editor__tab-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--rm-primary);
+	display: inline-block;
+}
+.rawmark-editor__toolbar-right {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.rawmark-editor__seg {
+	display: flex;
+	align-items: center;
+	background: #ececea;
+	border-radius: 7px;
+	padding: 2px;
+	gap: 2px;
+}
+.rm-seg {
+	width: 30px;
+	height: 26px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	background: transparent;
+	color: #8b8b86;
+	box-shadow: none;
+}
+.rm-seg:hover {
+	color: var(--rm-ink);
+}
+.rawmark-editor__seg-btn--active {
+	background: #fff;
+	color: var(--rm-ink);
+	box-shadow: 0 1px 2px rgba(15, 15, 15, .12);
+}
+.rm-icon-btn {
+	width: 30px;
+	height: 28px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--rm-hairline-strong);
+	border-radius: var(--rm-radius-md);
+	background: #fff;
+	cursor: pointer;
+	color: var(--rm-ink-secondary);
+}
+.rm-icon-btn:hover {
+	background: #efeeec;
+}
+
+/* ===== Main split ===== */
+.rawmark-editor__split {
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+	background: var(--rm-surface);
+}
+.rawmark-editor__code {
+	flex: 0 0 auto;
+	min-width: 0;
+	position: relative;
+	overflow: hidden;
+	background: #fff;
+}
+.rawmark-editor__pane-cm {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+.rawmark-editor__pane-cm > .cm-editor {
+	height: 100%;
+}
+
+.rawmark-editor__divider {
+	flex: 0 0 6px;
+	cursor: col-resize;
+	background: #f0efec;
+	position: relative;
+}
+.rawmark-editor__divider:hover {
+	background: #d9ecff;
+}
+.rawmark-editor__divider span {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 2px;
+	height: 26px;
+	border-radius: 2px;
+	background: #c9c7c1;
+}
+
+.rawmark-editor__preview-pane {
+	flex: 1 1 auto;
+	min-width: 0;
+	background: var(--rm-canvas-soft);
+	overflow: auto;
+}
+.rawmark-editor__frame-wrap {
+	min-height: 100%;
+	height: 100%;
+	/* width + flex:1 are belt-and-braces: they keep this box spanning the
+	   full pane whether the parent section computes as block or flex. */
+	width: 100%;
+	flex: 1 1 auto;
+	display: flex;
+	/* `safe center` keeps the frame centred while it fits, but falls back to
+	   start-alignment once it overflows - plain `center` would push the left
+	   edge into negative space where scrolling can never reach it. The first
+	   declaration is the fallback for browsers without the safe keyword. */
+	justify-content: center;
+	justify-content: safe center;
+}
+.rawmark-editor__frame {
+	/* Must not shrink below the chosen device width. A "390px mobile preview"
+	   squeezed to 220px because the split was dragged narrow reports a layout
+	   the real phone would never render; the pane scrolls instead
+	   (overflow:auto on .rawmark-editor__preview-pane). Desktop passes
+	   width:100%, so this only pins the fixed mobile/tablet widths. */
+	flex: 0 0 auto;
+	background: #fff;
+	border: 1px solid var(--rm-hairline);
+	overflow: hidden;
+	box-shadow: var(--rm-shadow-soft);
+	transition: width .18s ease;
+}
+.rawmark-editor__frame iframe {
+	width: 100%;
+	height: 100%;
+	border: none;
+	display: block;
+	background: #fff;
+}
+
+/* ===== Status bar ===== */
+.rawmark-editor__statusbar {
+	font-family: var(--rm-mono);
+	display: flex;
+	align-items: center;
+	height: 28px;
+	padding: 0 4px;
+	border-top: 1px solid var(--rm-hairline);
+	background: var(--rm-canvas-soft);
+	color: var(--rm-ink-muted);
+	font-size: 11.5px;
+	flex: 0 0 auto;
+}
+.rawmark-editor__statusbar-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 10px;
+	height: 100%;
+}
+.rawmark-editor__statusbar-sep {
+	width: 1px;
+	height: 14px;
+	background: var(--rm-hairline-strong);
+}
+.rawmark-editor__lint {
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 11.5px;
+	color: inherit;
+	border-radius: 0;
+}
