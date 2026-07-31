@@ -142,4 +142,155 @@ class Test_Migration extends WP_UnitTestCase {
 		$this->assertSame( 'home', get_post( $page_id )->post_name );
 		$this->assertSame( 'home-2', get_post( $code_page_id )->post_name );
 	}
+
+	// 'post_status' => 'any' expands to every status *except* those
+	// registered exclude_from_search => true, which silently drops 'trash'
+	// and 'auto-draft'. Those rows were skipped, the version option bumped,
+	// and - since nothing registers rawmark_code_page any more - a trashed
+	// Code Page could never be restored: the post type it belonged to no
+	// longer exists anywhere in the codebase.
+	//
+	// @dataProvider is deliberately not used: each status needs its own
+	// clean assertion of both the type change and the flag.
+	public function test_a_trashed_legacy_page_is_migrated_not_skipped(): void {
+		register_post_type( 'rawmark_code_page', array( 'public' => true ) );
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'rawmark_code_page',
+				'post_status' => 'trash',
+				'post_title'  => 'Trashed',
+			)
+		);
+
+		delete_option( Migrator::VERSION_OPTION );
+
+		$this->assertSame( 1, Migrator::migrate() );
+
+		// Re-read from the database, never from a return value.
+		wp_cache_flush();
+		$this->assertSame( 'page', get_post_type( $id ) );
+		$this->assertTrue( PageFlag::is_enabled( $id ) );
+
+		// Still in the trash, so it is restorable - into a post type that
+		// now exists, which is the entire point.
+		$this->assertSame( 'trash', get_post_status( $id ) );
+	}
+
+	public function test_an_auto_draft_legacy_page_is_migrated_not_skipped(): void {
+		register_post_type( 'rawmark_code_page', array( 'public' => true ) );
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'rawmark_code_page',
+				'post_status' => 'auto-draft',
+				'post_title'  => 'Unsaved',
+			)
+		);
+
+		delete_option( Migrator::VERSION_OPTION );
+
+		$this->assertSame( 1, Migrator::migrate() );
+
+		wp_cache_flush();
+		$this->assertSame( 'page', get_post_type( $id ) );
+	}
+
+	// A conversion can fail for reasons outside this plugin - another
+	// plugin's filter rejecting the write, a bad parent, a database error.
+	// Flagging such a post would leave a permanently invisible orphan:
+	// PageFlag::is_enabled() checks post_type, so the meta is never
+	// honoured, but a later reader sees a _rawmark_enabled row and assumes
+	// it migrated.
+	public function test_a_failed_conversion_is_not_flagged_or_counted(): void {
+		register_post_type( 'rawmark_code_page', array( 'public' => true ) );
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'rawmark_code_page',
+				'post_status' => 'publish',
+				'post_title'  => 'Doomed',
+			)
+		);
+
+		delete_option( Migrator::VERSION_OPTION );
+
+		// Makes wp_insert_post() bail with WP_Error( 'empty_content' ) for
+		// every write, which is the shape any rejecting filter produces.
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+		$converted = Migrator::migrate();
+		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$this->assertSame( 0, $converted );
+		$this->assertSame( 1, Migrator::failed_count() );
+
+		wp_cache_flush();
+		$this->assertSame( 'rawmark_code_page', get_post_type( $id ) );
+		$this->assertSame( '', get_post_meta( $id, PageFlag::META_KEY, true ) );
+	}
+
+	// Bumping the version option past a failure would strand that row
+	// forever - migration would never look at it again. Leaving the option
+	// unset costs a repeated query per request until the cause is fixed,
+	// which is loud and recoverable rather than silent and permanent.
+	public function test_the_version_option_is_not_bumped_when_a_conversion_fails(): void {
+		register_post_type( 'rawmark_code_page', array( 'public' => true ) );
+
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'rawmark_code_page',
+				'post_status' => 'publish',
+				'post_title'  => 'Doomed',
+			)
+		);
+
+		delete_option( Migrator::VERSION_OPTION );
+
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+		Migrator::run_if_needed();
+		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$this->assertFalse( get_option( Migrator::VERSION_OPTION ) );
+
+		// And the retry succeeds once the cause is gone.
+		Migrator::run_if_needed();
+		$this->assertSame( 2, (int) get_option( Migrator::VERSION_OPTION ) );
+	}
+
+	// Rewrite rules are derived from registered post types and taxonomies at
+	// init - post rows contribute nothing. Migration used to flush them from
+	// plugins_loaded, before init, persisting a rule set with no categories,
+	// no tags and no third-party CPTs and breaking those permalinks
+	// site-wide. Nothing in migrate() may touch them.
+	public function test_migration_does_not_flush_rewrite_rules(): void {
+		register_post_type( 'rawmark_code_page', array( 'public' => true ) );
+
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'rawmark_code_page',
+				'post_status' => 'publish',
+			)
+		);
+
+		$sentinel = array( 'rawmark-sentinel/?$' => 'index.php?rawmark=1' );
+		update_option( 'rewrite_rules', $sentinel );
+
+		delete_option( Migrator::VERSION_OPTION );
+		Migrator::migrate();
+
+		$this->assertSame( $sentinel, get_option( 'rewrite_rules' ) );
+	}
+
+	// WP_UnitTestCase only resets post types when WP_RUN_CORE_TESTS is
+	// defined, which a plugin suite never defines (see
+	// abstract-testcase.php). Without this, the register_post_type() calls
+	// above leak into every test class that runs after this one for the rest
+	// of the PHPUnit process.
+	public function tear_down(): void {
+		if ( post_type_exists( 'rawmark_code_page' ) ) {
+			unregister_post_type( 'rawmark_code_page' );
+		}
+
+		parent::tear_down();
+	}
 }

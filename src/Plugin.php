@@ -26,7 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Plugin {
 
 	public static function boot(): void {
-		Migrator::run_if_needed();
+		// Deferred to init rather than run inline here: at plugins_loaded
+		// no plugin's post types, taxonomies, statuses or save-time filters
+		// are registered yet, and kses_init_filters() has not run. See
+		// Migrator::run_if_needed().
+		add_action( 'init', array( Migrator::class, 'run_if_needed' ) );
 
 		$editor_screen = new EditorScreen();
 
