@@ -81,6 +81,53 @@ class Test_Page_Mode extends WP_UnitTestCase {
 		$this->assertTrue( post_type_supports( 'page', 'editor' ) );
 	}
 
+	// Design spec section 10, "Saving from the classic screen does not alter
+	// _rawmark_source" - the desync-prevention requirement. The classic
+	// screen submits the whole post row, so this is that write shape: a
+	// title change carrying a post_content the screen believes is current.
+	// _rawmark_source lives in separate meta and must come through
+	// byte-identical.
+	public function test_a_classic_screen_save_does_not_alter_the_source(): void {
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'draft',
+			)
+		);
+		PageFlag::enable( $id );
+
+		$html = '<section class="hero" data-x="1"><h1>Hello &amp; welcome</h1></section>';
+		$css  = '.hero{color:#191919} /* </style> */';
+		$js   = 'var s = "</script>"; console.log("ok");';
+		\Rawmark\Storage\Source::save( $id, $html, $css, $js, array() );
+
+		// Re-read from the database, never from a return value.
+		wp_cache_flush();
+		$before = get_post_meta( $id, \Rawmark\Storage\Source::META_KEY, true );
+
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_title'   => 'Renamed from the classic screen',
+				'post_content' => '<p>whatever the classic editor had in its box</p>',
+			)
+		);
+
+		wp_cache_flush();
+		$after = get_post_meta( $id, \Rawmark\Storage\Source::META_KEY, true );
+
+		$this->assertSame( $before, $after );
+
+		$stored = \Rawmark\Storage\Source::get( $id );
+		$this->assertSame( $html, $stored['html'] );
+		$this->assertSame( $css, $stored['css'] );
+		$this->assertSame( $js, $stored['js'] );
+
+		// The title change must still land - the guard protects the mirror,
+		// it does not make the row read-only.
+		$this->assertSame( 'Renamed from the classic screen', get_post( $id )->post_title );
+	}
+
 	protected function tearDown(): void {
 		// Restore in case a test above removed it - render_panel() mutates
 		// this global registration, and WP_UnitTestCase does not reset it

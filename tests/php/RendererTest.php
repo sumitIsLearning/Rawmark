@@ -25,21 +25,99 @@ class Test_Renderer extends WP_UnitTestCase {
 		$this->assertSame( '<\/style>', Escaper::escape_style( '</style>' ) );
 	}
 
-	public function test_draft_is_not_rendered_to_logged_out_visitors(): void {
+	/**
+	 * go_to( get_permalink( $id ) ) cannot be used to test the renderer's
+	 * status guard. For a non-public post the permalink is a ?page_id=N URL
+	 * that the main query refuses to resolve for an anonymous visitor, so
+	 * get_queried_object() returns null and Router::maybe_render() bails at
+	 * its very first guard - the `! $post instanceof WP_Post` check - and
+	 * the post_status/read_post block below it is never executed. A test
+	 * built that way passes whether or not that block exists at all.
+	 *
+	 * Priming $wp_query directly with an explicit post_status is what makes
+	 * the main query hand back a real WP_Post for a non-public post, so the
+	 * guard is genuinely reached. Verified by mutation: deleting the
+	 * post_status/read_post block from Router::maybe_render() makes both
+	 * tests below fail.
+	 */
+	private function prime_singular_query( int $id, string $status ): void {
+		global $wp_query, $wp_the_query;
+
+		$wp_query = new WP_Query(
+			array(
+				'page_id'     => $id,
+				'post_type'   => 'page',
+				'post_status' => $status,
+			)
+		);
+
+		$wp_the_query = $wp_query;
+
+		$this->assertInstanceOf(
+			WP_Post::class,
+			get_queried_object(),
+			'The query must actually resolve the post, or the guard under test is never reached.'
+		);
+	}
+
+	private function non_public_page( string $status ): int {
 		$id = self::factory()->post->create(
 			array(
 				'post_type'   => 'page',
-				'post_status' => 'draft',
+				'post_status' => $status,
 			)
 		);
 		PageFlag::enable( $id );
 		Source::save( $id, '<h1>secret</h1>', '', '', array() );
 
+		return $id;
+	}
+
+	public function test_draft_is_not_rendered_to_logged_out_visitors(): void {
+		$id = $this->non_public_page( 'draft' );
+
 		wp_set_current_user( 0 );
-		$this->go_to( get_permalink( $id ) );
+		$this->prime_singular_query( $id, 'draft' );
+
 		$template = apply_filters( 'template_include', 'theme-template.php' );
 
 		$this->assertStringNotContainsString( 'code-page.php', $template );
+
+		// set_404() only happens inside the guard, so this is what proves
+		// the guard ran rather than the renderer having declined earlier
+		// for some unrelated reason.
+		$this->assertTrue( is_404() );
+	}
+
+	// The guard reads post_status, not "is it a draft", so private pages
+	// take the same path. The spec's security requirements name drafts
+	// explicitly; this pins the neighbouring case so it cannot regress
+	// unnoticed.
+	public function test_private_page_is_not_rendered_to_logged_out_visitors(): void {
+		$id = $this->non_public_page( 'private' );
+
+		wp_set_current_user( 0 );
+		$this->prime_singular_query( $id, 'private' );
+
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		$this->assertStringNotContainsString( 'code-page.php', $template );
+		$this->assertTrue( is_404() );
+	}
+
+	// The other side of the guard: a user who may read the post still gets
+	// the standalone document, so the check rejects on capability rather
+	// than on status alone.
+	public function test_draft_is_rendered_for_a_user_who_may_read_it(): void {
+		$id = $this->non_public_page( 'draft' );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->prime_singular_query( $id, 'draft' );
+
+		$this->assertStringContainsString(
+			'code-page.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
 	}
 
 	public function test_flagged_page_renders_the_plugin_template(): void {
@@ -72,5 +150,63 @@ class Test_Renderer extends WP_UnitTestCase {
 			'theme-template.php',
 			apply_filters( 'template_include', 'theme-template.php' )
 		);
+	}
+
+	// The originating requirement of the whole migration off the custom post
+	// type: a Rawmark page could not be the site's front page, because
+	// page_on_front only accepts a Page. This is the test that says the
+	// migration achieved what it was for.
+	public function test_a_flagged_page_set_as_the_front_page_renders_standalone(): void {
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'page', 'post_status' => 'publish' )
+		);
+		PageFlag::enable( $id );
+		Source::save( $id, '<h1>Front</h1>', '', '', array() );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $id );
+
+		$this->go_to( home_url( '/' ) );
+
+		$this->assertTrue( is_front_page() );
+		$this->assertSame( $id, get_queried_object_id() );
+		$this->assertStringContainsString(
+			'code-page.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
+
+	// The other half of the originating requirement: a clean /{slug}/
+	// permalink, with none of the /code-page/ prefixing the old custom post
+	// type's rewrite rules imposed, and no ?p= fallback.
+	public function test_a_flagged_page_has_a_clean_permalink(): void {
+		$this->set_permalink_structure( '/%postname%/' );
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'my-raw-page',
+			)
+		);
+		PageFlag::enable( $id );
+
+		$permalink = get_permalink( $id );
+
+		$this->assertSame( home_url( '/my-raw-page/' ), $permalink );
+		$this->assertStringNotContainsString( '?', $permalink );
+		$this->assertStringNotContainsString( 'code-page', $permalink );
+	}
+
+	public function tear_down(): void {
+		// go_to() rebuilds these for most tests, but prime_singular_query()
+		// installs a query by hand and the front-page test rewrites two
+		// options. Neither is reset by WP_UnitTestCase, so both would leak
+		// into whatever runs next in this process.
+		update_option( 'show_on_front', 'posts' );
+		update_option( 'page_on_front', 0 );
+		$this->set_permalink_structure( '' );
+
+		parent::tear_down();
 	}
 }
