@@ -9,6 +9,7 @@ namespace Rawmark;
 
 use Rawmark\Admin\Assets;
 use Rawmark\Admin\EditorScreen;
+use Rawmark\Admin\PageModeToggle;
 use Rawmark\Frontend\Router;
 use Rawmark\Migration\Migrator;
 use Rawmark\PostType\CodePage;
@@ -36,6 +37,7 @@ final class Plugin {
 			new Router(),
 			$editor_screen,
 			new Assets( $editor_screen ),
+			new PageModeToggle(),
 		);
 
 		foreach ( $services as $service ) {
