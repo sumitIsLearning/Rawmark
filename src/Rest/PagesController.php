@@ -9,6 +9,7 @@ namespace Rawmark\Rest;
 
 use Rawmark\PostType\CodePage;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\ContentMirror;
 use Rawmark\Storage\Source;
 use WP_Error;
 use WP_REST_Request;
@@ -130,6 +131,8 @@ final class PagesController {
 		if ( is_wp_error( $saved ) ) {
 			return $saved;
 		}
+
+		ContentMirror::write( $id, $saved['html'] );
 
 		$post = get_post( $id );
 
