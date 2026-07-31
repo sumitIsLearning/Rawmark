@@ -10,6 +10,7 @@ namespace Rawmark;
 use Rawmark\Admin\Assets;
 use Rawmark\Admin\EditorScreen;
 use Rawmark\Frontend\Router;
+use Rawmark\Migration\Migrator;
 use Rawmark\PostType\CodePage;
 use Rawmark\Rest\PagesController;
 use Rawmark\Rest\Routes;
@@ -23,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Plugin {
 
 	public static function boot(): void {
+		Migrator::run_if_needed();
+
 		$editor_screen = new EditorScreen();
 
 		/** @var Hookable[] $services */
