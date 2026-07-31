@@ -17,6 +17,7 @@ use Rawmark\Migration\Migrator;
 use Rawmark\Rest\PagesController;
 use Rawmark\Rest\Routes;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\ContentMirror;
 use Rawmark\Support\Hookable;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,6 +45,7 @@ final class Plugin {
 			new PageModeToggle(),
 			new EditorLock(),
 			new PageListIntegration(),
+			new ContentMirror(),
 		);
 
 		foreach ( $services as $service ) {
