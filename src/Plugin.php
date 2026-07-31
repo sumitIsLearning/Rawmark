@@ -10,6 +10,7 @@ namespace Rawmark;
 use Rawmark\Admin\Assets;
 use Rawmark\Admin\EditorLock;
 use Rawmark\Admin\EditorScreen;
+use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\PageModeToggle;
 use Rawmark\Frontend\Router;
 use Rawmark\Migration\Migrator;
@@ -40,6 +41,7 @@ final class Plugin {
 			new Assets( $editor_screen ),
 			new PageModeToggle(),
 			new EditorLock(),
+			new PageListIntegration(),
 		);
 
 		foreach ( $services as $service ) {
