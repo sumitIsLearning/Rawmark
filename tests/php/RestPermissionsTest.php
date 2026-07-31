@@ -8,7 +8,7 @@
  * @package Rawmark
  */
 
-use Rawmark\PostType\CodePage;
+use Rawmark\Storage\PageFlag;
 
 class Test_Rest_Permissions extends WP_UnitTestCase {
 
@@ -19,10 +19,11 @@ class Test_Rest_Permissions extends WP_UnitTestCase {
 
 		$this->page_id = self::factory()->post->create(
 			array(
-				'post_type'   => CodePage::SLUG,
+				'post_type'   => 'page',
 				'post_status' => 'draft',
 			)
 		);
+		PageFlag::enable( $this->page_id );
 	}
 
 	public function test_unauthenticated_put_is_rejected(): void {
@@ -47,5 +48,18 @@ class Test_Rest_Permissions extends WP_UnitTestCase {
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( '<p>hi</p>', $response->get_data()['html'] );
+	}
+
+	public function test_an_unflagged_page_is_not_reachable_through_rawmark_routes(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$response = rest_get_server()->dispatch(
+			new WP_REST_Request( 'GET', '/rawmark/v1/pages/' . $id )
+		);
+
+		$this->assertSame( 404, $response->get_status() );
 	}
 }

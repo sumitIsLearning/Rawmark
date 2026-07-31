@@ -8,8 +8,8 @@
 
 namespace Rawmark\Admin;
 
-use Rawmark\PostType\CodePage;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\PageFlag;
 use Rawmark\Support\Hookable;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,8 +24,6 @@ final class EditorScreen implements Hookable {
 
 	public function register(): void {
 		add_action( 'admin_menu', array( $this, 'register_page' ) );
-		add_action( 'load-post.php', array( $this, 'redirect_from_post_php' ) );
-		add_action( 'load-post-new.php', array( $this, 'redirect_from_post_new_php' ) );
 		add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
 	}
 
@@ -82,57 +80,6 @@ final class EditorScreen implements Hookable {
 		return $this->hook_suffix;
 	}
 
-	/**
-	 * post-new.php always creates a real auto-draft post via
-	 * get_default_post_to_edit() before this hook fires - reusing that
-	 * lets "Add New" work without a dedicated create-page REST route.
-	 */
-	public function redirect_from_post_new_php(): void {
-		if ( ! isset( $_GET['post_type'] ) || CodePage::SLUG !== $_GET['post_type'] ) {
-			return;
-		}
-
-		if ( ! current_user_can( Capabilities::CAP ) ) {
-			return;
-		}
-
-		$post = get_default_post_to_edit( CodePage::SLUG, true );
-
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&post=' . $post->ID ) );
-		exit;
-	}
-
-	/**
-	 * Only intercepts the plain GET edit view. Trash/untrash/delete row
-	 * actions also route through post.php with a different action and a
-	 * nonce, and must fall through untouched or the native trash flow
-	 * breaks.
-	 */
-	public function redirect_from_post_php(): void {
-		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) {
-			return;
-		}
-
-		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'edit';
-
-		if ( 'edit' !== $action ) {
-			return;
-		}
-
-		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
-
-		if ( ! $post_id || CodePage::SLUG !== get_post_type( $post_id ) ) {
-			return;
-		}
-
-		if ( ! current_user_can( Capabilities::CAP ) ) {
-			return;
-		}
-
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&post=' . $post_id ) );
-		exit;
-	}
-
 	public function render(): void {
 		if ( ! current_user_can( Capabilities::CAP ) ) {
 			wp_die( esc_html__( 'You do not have permission to edit Code Pages.', 'rawmark' ) );
@@ -141,8 +88,8 @@ final class EditorScreen implements Hookable {
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 		$post    = $post_id ? get_post( $post_id ) : null;
 
-		if ( ! $post || CodePage::SLUG !== $post->post_type ) {
-			wp_die( esc_html__( 'Code Page not found.', 'rawmark' ) );
+		if ( ! $post || ! PageFlag::is_enabled( $post_id ) ) {
+			wp_die( esc_html__( 'Rawmark page not found.', 'rawmark' ) );
 		}
 		?>
 		<div id="rawmark-editor-root" class="rawmark-editor-root" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>"></div>

@@ -7,9 +7,9 @@
 
 namespace Rawmark\Rest;
 
-use Rawmark\PostType\CodePage;
 use Rawmark\Security\Capabilities;
 use Rawmark\Storage\ContentMirror;
+use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\Source;
 use WP_Error;
 use WP_REST_Request;
@@ -45,10 +45,10 @@ final class PagesController {
 
 		$id = (int) $request->get_param( 'id' );
 
-		if ( CodePage::SLUG !== get_post_type( $id ) ) {
+		if ( ! PageFlag::is_enabled( $id ) ) {
 			return new WP_Error(
 				'rawmark_not_found',
-				__( 'Code Page not found.', 'rawmark' ),
+				__( 'Rawmark page not found.', 'rawmark' ),
 				array( 'status' => 404 )
 			);
 		}

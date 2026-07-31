@@ -12,7 +12,7 @@
  * @package Rawmark
  */
 
-use Rawmark\PostType\CodePage;
+use Rawmark\Storage\PageFlag;
 
 class Test_Save_Lifecycle extends WP_UnitTestCase {
 
@@ -34,13 +34,16 @@ class Test_Save_Lifecycle extends WP_UnitTestCase {
 	}
 
 	private function new_auto_draft(): int {
-		return self::factory()->post->create(
+		$id = self::factory()->post->create(
 			array(
-				'post_type'   => CodePage::SLUG,
+				'post_type'   => 'page',
 				'post_status' => 'auto-draft',
 				'post_title'  => 'Auto Draft',
 			)
 		);
+		PageFlag::enable( $id );
+
+		return $id;
 	}
 
 	public function test_saving_a_new_page_omits_status_and_succeeds(): void {
@@ -76,10 +79,11 @@ class Test_Save_Lifecycle extends WP_UnitTestCase {
 	public function test_saving_a_published_page_does_not_unpublish_it(): void {
 		$id = self::factory()->post->create(
 			array(
-				'post_type'   => CodePage::SLUG,
+				'post_type'   => 'page',
 				'post_status' => 'publish',
 			)
 		);
+		PageFlag::enable( $id );
 
 		$this->client_save( $id, array( 'title' => 'My page', 'html' => '<p>edited</p>' ) );
 
