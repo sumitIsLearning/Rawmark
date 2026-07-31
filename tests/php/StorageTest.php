@@ -13,7 +13,6 @@
  * @package Rawmark
  */
 
-use Rawmark\PostType\CodePage;
 use Rawmark\Storage\Source;
 
 class Test_Storage extends WP_UnitTestCase {
@@ -24,7 +23,7 @@ class Test_Storage extends WP_UnitTestCase {
 		parent::set_up();
 		$this->page_id = self::factory()->post->create(
 			array(
-				'post_type'   => CodePage::SLUG,
+				'post_type'   => 'page',
 				'post_status' => 'draft',
 			)
 		);

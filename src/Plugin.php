@@ -14,7 +14,6 @@ use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\PageModeToggle;
 use Rawmark\Frontend\Router;
 use Rawmark\Migration\Migrator;
-use Rawmark\PostType\CodePage;
 use Rawmark\Rest\PagesController;
 use Rawmark\Rest\Routes;
 use Rawmark\Security\Capabilities;
@@ -34,7 +33,6 @@ final class Plugin {
 		/** @var Hookable[] $services */
 		$services = array(
 			new Capabilities(),
-			new CodePage(),
 			new Routes( new PagesController() ),
 			new Router(),
 			$editor_screen,
@@ -49,14 +47,8 @@ final class Plugin {
 		}
 	}
 
-	/**
-	 * Runs on activation. The init hook has already fired for this request
-	 * by the time register_activation_hook's callback runs, so the post
-	 * type has to be registered by hand before flushing rewrite rules.
-	 */
 	public static function activate(): void {
 		Capabilities::activate();
-		( new CodePage() )->register_post_type();
 		flush_rewrite_rules();
 	}
 }

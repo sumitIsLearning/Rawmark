@@ -6,7 +6,7 @@
  */
 
 use Rawmark\Frontend\Escaper;
-use Rawmark\PostType\CodePage;
+use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\Source;
 
 class Test_Renderer extends WP_UnitTestCase {
@@ -25,30 +25,14 @@ class Test_Renderer extends WP_UnitTestCase {
 		$this->assertSame( '<\/style>', Escaper::escape_style( '</style>' ) );
 	}
 
-	public function test_router_returns_a_template_path_for_published_pages(): void {
-		$id = self::factory()->post->create(
-			array(
-				'post_type'   => CodePage::SLUG,
-				'post_status' => 'publish',
-			)
-		);
-		Source::save( $id, '<h1>Hi</h1>', '', '', array() );
-
-		$this->go_to( get_permalink( $id ) );
-		$template = apply_filters( 'template_include', 'theme-template.php' );
-
-		// A path, never echo+exit - exiting skips WordPress's shutdown chain,
-		// which page-cache plugins depend on.
-		$this->assertStringContainsString( 'code-page.php', $template );
-	}
-
 	public function test_draft_is_not_rendered_to_logged_out_visitors(): void {
 		$id = self::factory()->post->create(
 			array(
-				'post_type'   => CodePage::SLUG,
+				'post_type'   => 'page',
 				'post_status' => 'draft',
 			)
 		);
+		PageFlag::enable( $id );
 		Source::save( $id, '<h1>secret</h1>', '', '', array() );
 
 		wp_set_current_user( 0 );
@@ -67,6 +51,8 @@ class Test_Renderer extends WP_UnitTestCase {
 
 		$this->go_to( get_permalink( $id ) );
 
+		// A path, never echo+exit - exiting skips WordPress's shutdown chain,
+		// which page-cache plugins depend on.
 		$this->assertStringContainsString(
 			'code-page.php',
 			apply_filters( 'template_include', 'theme-template.php' )

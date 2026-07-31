@@ -17,23 +17,7 @@ final class Capabilities implements Hookable {
 
 	public const CAP = 'rawmark_edit_code';
 
-	/**
-	 * WordPress secretly registers whatever string a post type maps
-	 * edit_post/read_post/delete_post to into a global meta-cap redirect
-	 * table (see _post_type_meta_capabilities() in wp-includes/post.php).
-	 * If that string is the same one used for a bare, no-object
-	 * current_user_can( CAP ) check elsewhere (REST, admin menus, ...),
-	 * every one of those bare checks gets silently rerouted through
-	 * map_meta_cap() with a missing object id and fails - core logs a
-	 * "must always check against a specific post" notice and returns
-	 * do_not_allow. These three exist purely so the post type's meta caps
-	 * never share a string with the plugin-wide gate.
-	 */
-	public const META_CAP_EDIT_POST   = 'rawmark_meta_edit_post';
-	public const META_CAP_READ_POST   = 'rawmark_meta_read_post';
-	public const META_CAP_DELETE_POST = 'rawmark_meta_delete_post';
-
-	private const ALL = array( self::CAP, self::META_CAP_EDIT_POST, self::META_CAP_READ_POST, self::META_CAP_DELETE_POST );
+	private const ALL = array( self::CAP );
 
 	/**
 	 * On multisite, none of these are ever added to a role - adding them
