@@ -48,9 +48,14 @@ final class Migrator {
 		}
 
 		foreach ( $posts as $post ) {
-			// wp_update_post() would re-run slug uniqueness against pages and
-			// can silently rename. Setting post_type directly keeps the slug
-			// unless it genuinely collides, which is checked next.
+			// Only post_type is passed - no explicit slug handling here.
+			// wp_update_post() re-runs wp_unique_post_slug() as part of
+			// updating the post, which is where a genuine collision against
+			// an existing Page gets resolved (by renaming the incoming
+			// post, e.g. "home" -> "home-2"). That collision handling is
+			// entirely WP core's, not this class's; see
+			// test_colliding_slug_is_renamed_by_core() for the observed
+			// behavior this relies on.
 			wp_update_post(
 				wp_slash(
 					array(
