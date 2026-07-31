@@ -53,6 +53,57 @@ class Test_Migration extends WP_UnitTestCase {
 		$this->assertSame( 0, Migrator::migrate() );
 	}
 
+	// The only configuration that can occur in production. Nothing registers
+	// rawmark_code_page any more (the post type was deleted in Task 9), so on
+	// a real upgrading site Migrator queries a type WordPress has never heard
+	// of. Every other test in this class registers it first, which is now an
+	// impossible state. This matters because run_if_needed() writes the
+	// version option regardless of what migrate() returns: a silently empty
+	// query would permanently skip migration and strand every legacy Code
+	// Page as an orphaned, invisible row.
+	//
+	// The row is inserted with $wpdb->insert() rather than wp_insert_post()
+	// deliberately - the point is to prove the get_posts() query itself
+	// matches on the post_type column without a registry lookup, not to lean
+	// on whatever tolerance core's insert path happens to have.
+	public function test_migrates_a_legacy_row_when_the_post_type_is_not_registered(): void {
+		// WP_UnitTestCase only resets post types when WP_RUN_CORE_TESTS is
+		// defined, which it never is for a plugin suite (see
+		// abstract-testcase.php:125). A register_post_type() call in any
+		// sibling test therefore survives for the rest of the PHPUnit
+		// process, so the unregistered state this test exists to cover has
+		// to be established explicitly rather than assumed. Without this the
+		// test would still pass while quietly exercising the registered path
+		// - the exact false negative it is meant to rule out.
+		unregister_post_type( 'rawmark_code_page' );
+		$this->assertFalse( post_type_exists( 'rawmark_code_page' ) );
+
+		global $wpdb;
+		$wpdb->insert(
+			$wpdb->posts,
+			array(
+				'post_type'    => 'rawmark_code_page',
+				'post_status'  => 'publish',
+				'post_title'   => 'Legacy',
+				'post_name'    => 'legacy',
+				'post_author'  => 1,
+				'post_content' => '',
+				'post_excerpt' => '',
+			)
+		);
+		$id = (int) $wpdb->insert_id;
+		clean_post_cache( $id );
+
+		delete_option( Migrator::VERSION_OPTION );
+
+		$this->assertSame( 1, Migrator::migrate() );
+
+		// Re-read from the database, never from a return value.
+		wp_cache_flush();
+		$this->assertSame( 'page', get_post_type( $id ) );
+		$this->assertTrue( PageFlag::is_enabled( $id ) );
+	}
+
 	// Migrator itself performs no explicit collision check - a Code Page
 	// migrating to a slug already held by an existing Page is left entirely
 	// to wp_update_post()'s own call to wp_unique_post_slug(), which renames
