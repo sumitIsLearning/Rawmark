@@ -40,4 +40,21 @@ class Test_Page_Mode extends WP_UnitTestCase {
 		wp_cache_flush();
 		$this->assertSame( '<h1>keep me</h1>', \Rawmark\Storage\Source::get( $id )['html'] );
 	}
+
+	public function test_block_editor_is_disabled_for_a_flagged_page(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		PageFlag::enable( $id );
+
+		( new \Rawmark\Admin\EditorLock() )->register();
+
+		$this->assertFalse( use_block_editor_for_post( get_post( $id ) ) );
+	}
+
+	public function test_block_editor_still_works_for_a_normal_page(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		( new \Rawmark\Admin\EditorLock() )->register();
+
+		$this->assertTrue( use_block_editor_for_post( get_post( $id ) ) );
+	}
 }
