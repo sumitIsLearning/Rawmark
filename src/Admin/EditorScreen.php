@@ -50,8 +50,8 @@ final class EditorScreen implements Hookable {
 	public function register_page(): void {
 		$hook_suffix = add_submenu_page(
 			null,
-			__( 'Edit Code Page', 'rawmark' ),
-			__( 'Edit Code Page', 'rawmark' ),
+			__( 'Edit with Rawmark', 'rawmark' ),
+			__( 'Edit with Rawmark', 'rawmark' ),
 			Capabilities::CAP,
 			self::PAGE_SLUG,
 			array( $this, 'render' )
@@ -73,7 +73,7 @@ final class EditorScreen implements Hookable {
 	 * that and gives the screen a real browser-tab title.
 	 */
 	public function set_admin_title(): void {
-		$GLOBALS['title'] = __( 'Edit Code Page', 'rawmark' );
+		$GLOBALS['title'] = __( 'Edit with Rawmark', 'rawmark' );
 	}
 
 	public function get_hook_suffix(): string {
@@ -82,7 +82,7 @@ final class EditorScreen implements Hookable {
 
 	public function render(): void {
 		if ( ! current_user_can( Capabilities::CAP ) ) {
-			wp_die( esc_html__( 'You do not have permission to edit Code Pages.', 'rawmark' ) );
+			wp_die( esc_html__( 'You do not have permission to edit this page\'s code.', 'rawmark' ) );
 		}
 
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
