@@ -8,6 +8,7 @@
 namespace Rawmark\Frontend;
 
 use Rawmark\PostType\CodePage;
+use Rawmark\Storage\PageFlag;
 use Rawmark\Support\Hookable;
 use WP_Post;
 
@@ -30,13 +31,9 @@ final class Router implements Hookable {
 	 * explicitly.
 	 */
 	public function maybe_render( string $template ): string {
-		if ( ! is_singular( CodePage::SLUG ) ) {
-			return $template;
-		}
-
 		$post = get_queried_object();
 
-		if ( ! $post instanceof WP_Post ) {
+		if ( ! $post instanceof WP_Post || ! $this->is_rawmark_page( $post ) ) {
 			return $template;
 		}
 
@@ -54,6 +51,19 @@ final class Router implements Hookable {
 		$this->strip_theme_output();
 
 		return RAWMARK_DIR . '/templates/code-page.php';
+	}
+
+	/**
+	 * The CPT branch is transitional. Migration (Task 3) converts the last
+	 * of those posts into Pages, and Task 9 deletes this branch with the
+	 * post type.
+	 */
+	private function is_rawmark_page( WP_Post $post ): bool {
+		if ( is_singular( 'page' ) && PageFlag::is_enabled( $post->ID ) ) {
+			return true;
+		}
+
+		return is_singular( CodePage::SLUG );
 	}
 
 	/**

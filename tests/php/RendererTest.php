@@ -57,4 +57,34 @@ class Test_Renderer extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'code-page.php', $template );
 	}
+
+	public function test_flagged_page_renders_the_plugin_template(): void {
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'page', 'post_status' => 'publish' )
+		);
+		\Rawmark\Storage\PageFlag::enable( $id );
+		\Rawmark\Storage\Source::save( $id, '<h1>Hi</h1>', '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertStringContainsString(
+			'code-page.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
+
+	// The highest blast radius test in this phase: every ordinary page on the
+	// site must keep rendering through the theme, untouched.
+	public function test_unflagged_page_is_left_to_the_theme(): void {
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'page', 'post_status' => 'publish' )
+		);
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			'theme-template.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
 }
