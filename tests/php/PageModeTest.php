@@ -57,4 +57,36 @@ class Test_Page_Mode extends WP_UnitTestCase {
 
 		$this->assertTrue( use_block_editor_for_post( get_post( $id ) ) );
 	}
+
+	// remove_post_type_support() mutates global state that isn't reset
+	// between tests, so this test's own tearDown() restores it - otherwise
+	// it would silently poison every test that runs after it in this
+	// process.
+	public function test_render_panel_removes_editor_support_for_a_flagged_page(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		PageFlag::enable( $id );
+
+		( new \Rawmark\Admin\EditorLock() )->register();
+		do_action( 'edit_form_after_title', get_post( $id ) );
+
+		$this->assertFalse( post_type_supports( 'page', 'editor' ) );
+	}
+
+	public function test_render_panel_is_a_no_op_for_an_unflagged_page(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		( new \Rawmark\Admin\EditorLock() )->register();
+		do_action( 'edit_form_after_title', get_post( $id ) );
+
+		$this->assertTrue( post_type_supports( 'page', 'editor' ) );
+	}
+
+	protected function tearDown(): void {
+		// Restore in case a test above removed it - render_panel() mutates
+		// this global registration, and WP_UnitTestCase does not reset it
+		// automatically between tests.
+		add_post_type_support( 'page', 'editor' );
+
+		parent::tearDown();
+	}
 }
