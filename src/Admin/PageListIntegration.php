@@ -23,6 +23,13 @@ final class PageListIntegration implements Hookable {
 		add_filter( 'page_row_actions', array( $this, 'add_row_action' ), 10, 2 );
 		add_filter( 'manage_pages_columns', array( $this, 'add_column' ) );
 		add_action( 'manage_pages_custom_column', array( $this, 'render_column' ), 10, 2 );
+
+		// WordPress uses different hook names for the Posts list table than
+		// for the Pages one - same callbacks work unmodified on both, since
+		// none of them inspect post type.
+		add_filter( 'post_row_actions', array( $this, 'add_row_action' ), 10, 2 );
+		add_filter( 'manage_posts_columns', array( $this, 'add_column' ) );
+		add_action( 'manage_posts_custom_column', array( $this, 'render_column' ), 10, 2 );
 	}
 
 	/**
