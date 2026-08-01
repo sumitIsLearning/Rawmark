@@ -9,6 +9,7 @@ namespace Rawmark\Rest;
 
 use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\Source;
 use WP_Error;
 use WP_REST_Request;
@@ -59,6 +60,55 @@ final class SnippetsController {
 		}
 
 		return true;
+	}
+
+	/**
+	 * The collection GET's own permission check - deliberately separate from
+	 * check_permission() above, which branches on an `id` or a
+	 * `source_page_id` param that a plain list request carries neither of.
+	 *
+	 * @return true|WP_Error
+	 */
+	public function check_list_permission() {
+		if ( ! current_user_can( Capabilities::CAP ) ) {
+			return new WP_Error(
+				'rawmark_forbidden',
+				__( 'You do not have permission to do that.', 'rawmark' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Every snippet, with its linked state - the editor's "Insert Snippet"
+	 * picker uses the full list, the header/footer pickers filter this down
+	 * to `linked: true` client-side rather than needing a second endpoint.
+	 */
+	public function list_items(): WP_REST_Response {
+		$snippets = get_posts(
+			array(
+				'post_type'      => Snippet::SLUG,
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		$data = array_map(
+			static function ( $post ) {
+				return array(
+					'id'     => $post->ID,
+					'title'  => $post->post_title,
+					'linked' => SnippetLink::is_linked( $post->ID ),
+				);
+			},
+			$snippets
+		);
+
+		return new WP_REST_Response( $data, 200 );
 	}
 
 	public function get_item( WP_REST_Request $request ): WP_REST_Response {

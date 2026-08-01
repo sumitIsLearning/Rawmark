@@ -17,6 +17,21 @@ class Test_Snippets_Screen extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Main nav', $html );
 	}
 
+	// The Snippets screen was the only place a snippet's ID could be found
+	// at all - the marker syntax needs it typed by hand and nothing else
+	// surfaced it - so it must actually render, not just exist in a link URL.
+	public function test_render_shows_the_snippet_id(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG, 'post_title' => 'Main nav' ) );
+
+		ob_start();
+		( new SnippetsScreen() )->render();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( '#' . $id, $html );
+	}
+
 	public function test_render_shows_link_action_for_an_unlinked_snippet(): void {
 		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin );

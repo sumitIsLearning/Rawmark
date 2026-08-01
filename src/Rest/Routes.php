@@ -60,6 +60,11 @@ final class Routes implements Hookable {
 			'/snippets',
 			array(
 				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this->snippets_controller, 'list_items' ),
+					'permission_callback' => array( $this->snippets_controller, 'check_list_permission' ),
+				),
+				array(
 					'methods'             => 'POST',
 					'callback'            => array( $this->snippets_controller, 'create_item' ),
 					'permission_callback' => array( $this->snippets_controller, 'check_permission' ),
@@ -131,32 +136,42 @@ final class Routes implements Hookable {
 	 */
 	private function page_update_args(): array {
 		return array(
-			'id'     => array(
+			'id'              => array(
 				'validate_callback' => static function ( $value ): bool {
 					return is_numeric( $value ) && (int) $value > 0;
 				},
 			),
-			'title'  => array(
+			'title'           => array(
 				'sanitize_callback' => 'sanitize_text_field',
 			),
-			'status' => array(
+			'status'          => array(
 				'validate_callback' => static function ( $value ): bool {
 					return in_array( $value, array( 'draft', 'publish', 'private', 'pending' ), true );
 				},
 			),
-			'html'   => array(
+			'html'            => array(
 				'validate_callback' => static function ( $value ): bool {
 					return is_string( $value );
 				},
 			),
-			'css'    => array(
+			'css'             => array(
 				'validate_callback' => static function ( $value ): bool {
 					return is_string( $value );
 				},
 			),
-			'js'     => array(
+			'js'              => array(
 				'validate_callback' => static function ( $value ): bool {
 					return is_string( $value );
+				},
+			),
+			'headerSnippetId' => array(
+				'validate_callback' => static function ( $value ): bool {
+					return is_numeric( $value ) && (int) $value >= 0;
+				},
+			),
+			'footerSnippetId' => array(
+				'validate_callback' => static function ( $value ): bool {
+					return is_numeric( $value ) && (int) $value >= 0;
 				},
 			),
 		);

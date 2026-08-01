@@ -69,6 +69,7 @@ final class SnippetsScreen implements Hookable {
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
+						<th><?php esc_html_e( 'ID', 'rawmark' ); ?></th>
 						<th><?php esc_html_e( 'Name', 'rawmark' ); ?></th>
 						<th><?php esc_html_e( 'Mode', 'rawmark' ); ?></th>
 						<th><?php esc_html_e( 'Used on', 'rawmark' ); ?></th>
@@ -77,7 +78,7 @@ final class SnippetsScreen implements Hookable {
 				</thead>
 				<tbody>
 				<?php if ( ! $snippets ) : ?>
-					<tr><td colspan="4"><?php esc_html_e( 'No snippets yet.', 'rawmark' ); ?></td></tr>
+					<tr><td colspan="5"><?php esc_html_e( 'No snippets yet.', 'rawmark' ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $snippets as $snippet ) : ?>
 					<?php
@@ -85,6 +86,7 @@ final class SnippetsScreen implements Hookable {
 					$count  = SnippetUsage::count_placements( $snippet->ID );
 					?>
 					<tr>
+						<td>#<?php echo (int) $snippet->ID; ?></td>
 						<td><?php echo esc_html( $snippet->post_title ); ?></td>
 						<td>
 							<?php if ( $linked ) : ?>

@@ -1,5 +1,6 @@
 <?php
 use Rawmark\PostType\Snippet;
+use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\Source;
 
 class Test_Snippets_Rest extends WP_UnitTestCase {
@@ -78,6 +79,36 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 
 		wp_cache_flush();
 		$this->assertSame( 'new', Source::get( $id )['html'] );
+	}
+
+	public function test_list_items_returns_every_snippet_with_its_linked_state(): void {
+		$this->admin();
+		$linked = self::factory()->post->create( array( 'post_type' => Snippet::SLUG, 'post_title' => 'Header' ) );
+		SnippetLink::link( $linked );
+		$unlinked = self::factory()->post->create( array( 'post_type' => Snippet::SLUG, 'post_title' => 'Draft idea' ) );
+
+		$response = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/rawmark/v1/snippets' ) );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$by_id = array();
+		foreach ( $data as $row ) {
+			$by_id[ $row['id'] ] = $row;
+		}
+
+		$this->assertTrue( $by_id[ $linked ]['linked'] );
+		$this->assertFalse( $by_id[ $unlinked ]['linked'] );
+		$this->assertSame( 'Header', $by_id[ $linked ]['title'] );
+	}
+
+	public function test_list_items_is_forbidden_without_the_capability(): void {
+		$subscriber = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $subscriber );
+
+		$response = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/rawmark/v1/snippets' ) );
+
+		$this->assertSame( 403, $response->get_status() );
 	}
 
 	public function test_an_unauthenticated_update_is_rejected(): void {

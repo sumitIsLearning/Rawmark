@@ -89,6 +89,47 @@ class Test_Save_Lifecycle extends WP_UnitTestCase {
 		$this->assertSame( get_permalink( $id ), $response->get_data()['permalink'] );
 	}
 
+	public function test_saving_a_linked_snippet_as_header_stores_the_reference(): void {
+		$id      = $this->new_auto_draft();
+		$snippet = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		\Rawmark\Storage\SnippetLink::link( $snippet );
+
+		$response = $this->client_save( $id, array( 'headerSnippetId' => $snippet ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( $snippet, $response->get_data()['headerSnippetId'] );
+
+		wp_cache_flush();
+		$this->assertSame( $snippet, (int) get_post_meta( $id, '_rawmark_header_snippet', true ) );
+	}
+
+	// The server re-validates linked-ness rather than trusting the posted
+	// ID outright - a tampered or stale value pointing at an unlinked
+	// snippet must never be stored as a reference. Mirrors the same rule
+	// HeaderFooterMetaBox enforces on the classic screen.
+	public function test_saving_an_unlinked_snippet_as_footer_is_ignored(): void {
+		$id      = $this->new_auto_draft();
+		$snippet = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) ); // not linked
+
+		$response = $this->client_save( $id, array( 'footerSnippetId' => $snippet ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 0, $response->get_data()['footerSnippetId'] );
+	}
+
+	public function test_sending_0_clears_an_existing_header_reference(): void {
+		$id      = $this->new_auto_draft();
+		$snippet = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		\Rawmark\Storage\SnippetLink::link( $snippet );
+		$this->client_save( $id, array( 'headerSnippetId' => $snippet ) );
+
+		$response = $this->client_save( $id, array( 'headerSnippetId' => 0 ) );
+
+		$this->assertSame( 0, $response->get_data()['headerSnippetId'] );
+		wp_cache_flush();
+		$this->assertSame( '', get_post_meta( $id, '_rawmark_header_snippet', true ) );
+	}
+
 	public function test_saving_a_published_page_does_not_unpublish_it(): void {
 		$id = self::factory()->post->create(
 			array(

@@ -10,6 +10,7 @@ namespace Rawmark\Rest;
 use Rawmark\Security\Capabilities;
 use Rawmark\Storage\ContentMirror;
 use Rawmark\Storage\PageFlag;
+use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\Source;
 use WP_Error;
 use WP_REST_Request;
@@ -73,14 +74,16 @@ final class PagesController {
 
 		return new WP_REST_Response(
 			array(
-				'id'        => $id,
-				'title'     => $this->display_title( $post ),
-				'status'    => $post->post_status,
-				'permalink' => get_permalink( $post ),
-				'html'      => $source['html'],
-				'css'       => $source['css'],
-				'js'        => $source['js'],
-				'settings'  => $source['settings'],
+				'id'              => $id,
+				'title'           => $this->display_title( $post ),
+				'status'          => $post->post_status,
+				'permalink'       => get_permalink( $post ),
+				'headerSnippetId' => (int) get_post_meta( $id, '_rawmark_header_snippet', true ),
+				'footerSnippetId' => (int) get_post_meta( $id, '_rawmark_footer_snippet', true ),
+				'html'            => $source['html'],
+				'css'             => $source['css'],
+				'js'              => $source['js'],
+				'settings'        => $source['settings'],
 			),
 			200
 		);
@@ -122,6 +125,14 @@ final class PagesController {
 			}
 		}
 
+		if ( $request->has_param( 'headerSnippetId' ) ) {
+			$this->save_placement( $id, '_rawmark_header_snippet', (int) $request->get_param( 'headerSnippetId' ) );
+		}
+
+		if ( $request->has_param( 'footerSnippetId' ) ) {
+			$this->save_placement( $id, '_rawmark_footer_snippet', (int) $request->get_param( 'footerSnippetId' ) );
+		}
+
 		$current = Source::get( $id );
 		$html    = $request->has_param( 'html' ) ? (string) $request->get_param( 'html' ) : $current['html'];
 		$css     = $request->has_param( 'css' ) ? (string) $request->get_param( 'css' ) : $current['css'];
@@ -139,17 +150,34 @@ final class PagesController {
 
 		return new WP_REST_Response(
 			array(
-				'id'        => $id,
-				'title'     => $this->display_title( $post ),
-				'status'    => $post->post_status,
-				'permalink' => get_permalink( $post ),
-				'html'      => $saved['html'],
-				'css'       => $saved['css'],
-				'js'        => $saved['js'],
-				'settings'  => $saved['settings'],
+				'id'              => $id,
+				'title'           => $this->display_title( $post ),
+				'status'          => $post->post_status,
+				'permalink'       => get_permalink( $post ),
+				'headerSnippetId' => (int) get_post_meta( $id, '_rawmark_header_snippet', true ),
+				'footerSnippetId' => (int) get_post_meta( $id, '_rawmark_footer_snippet', true ),
+				'html'            => $saved['html'],
+				'css'             => $saved['css'],
+				'js'              => $saved['js'],
+				'settings'        => $saved['settings'],
 			),
 			200
 		);
+	}
+
+	/**
+	 * Re-validates that the posted ID is genuinely a linked snippet before
+	 * storing it - the same rule HeaderFooterMetaBox enforces on the classic
+	 * screen, applied here too since this REST route is now a second way to
+	 * write the same two meta keys. Never trusts a client-supplied ID as the
+	 * sole gate. 0 (or any ID that fails the check) clears the placement.
+	 */
+	private function save_placement( int $post_id, string $meta_key, int $snippet_id ): void {
+		if ( $snippet_id > 0 && SnippetLink::is_linked( $snippet_id ) ) {
+			update_post_meta( $post_id, $meta_key, $snippet_id );
+		} else {
+			delete_post_meta( $post_id, $meta_key );
+		}
 	}
 
 	/**
