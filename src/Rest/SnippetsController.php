@@ -47,11 +47,16 @@ final class SnippetsController {
 			return true;
 		}
 
-		// The collection route (create): the page being copied from must be
-		// one this user can actually read.
+		// The collection route (create): copies the page's raw source into a
+		// new, globally-readable-by-any-rawmark_edit_code-holder Snippet, so
+		// the bar is edit_post, not read_post - a user who can merely view a
+		// private page they don't own must not be able to exfiltrate its
+		// source this way. Redundant while rawmark_edit_code is granted to
+		// administrators only (see Capabilities::activate()), load-bearing
+		// the moment a site grants it to a lower role.
 		$source_page_id = (int) $request->get_param( 'source_page_id' );
 
-		if ( ! current_user_can( 'read_post', $source_page_id ) ) {
+		if ( ! current_user_can( 'edit_post', $source_page_id ) ) {
 			return new WP_Error(
 				'rawmark_forbidden',
 				__( 'You do not have permission to do that.', 'rawmark' ),

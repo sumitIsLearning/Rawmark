@@ -32,12 +32,34 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$this->assertSame( 'Header', get_post( $id )->post_title );
 	}
 
-	public function test_creating_a_snippet_from_a_page_you_cannot_read_is_forbidden(): void {
+	public function test_creating_a_snippet_from_a_page_you_cannot_edit_is_forbidden(): void {
 		$this->admin();
 		$page = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'private' ) );
 
 		$editor = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $editor );
+
+		$request = new WP_REST_Request( 'POST', '/rawmark/v1/snippets' );
+		$request->set_body_params( array( 'source_page_id' => $page, 'name' => 'Nope' ) );
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 403, $response->get_status() );
+	}
+
+	// The gap this closes: read_post and edit_post are genuinely different
+	// capabilities. A user granted only read_private_pages can view this
+	// private page's content in wp-admin but must still be unable to copy
+	// its raw source into a Snippet every rawmark_edit_code holder can read.
+	public function test_creating_a_snippet_requires_edit_access_not_just_read_access(): void {
+		$this->admin();
+		$page = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'private' ) );
+
+		$reader = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		get_userdata( $reader )->add_cap( 'read_private_pages' );
+		wp_set_current_user( $reader );
+
+		$this->assertTrue( current_user_can( 'read_post', $page ), 'Test setup: reader must actually be able to read the page.' );
+		$this->assertFalse( current_user_can( 'edit_post', $page ), 'Test setup: reader must not be able to edit the page.' );
 
 		$request = new WP_REST_Request( 'POST', '/rawmark/v1/snippets' );
 		$request->set_body_params( array( 'source_page_id' => $page, 'name' => 'Nope' ) );
