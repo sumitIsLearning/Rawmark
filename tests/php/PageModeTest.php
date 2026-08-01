@@ -72,6 +72,16 @@ class Test_Page_Mode extends WP_UnitTestCase {
 		$this->assertFalse( post_type_supports( 'page', 'editor' ) );
 	}
 
+	public function test_render_panel_removes_editor_support_for_a_flagged_post(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'post' ) );
+		PageFlag::enable( $id );
+
+		( new \Rawmark\Admin\EditorLock() )->register();
+		do_action( 'edit_form_after_title', get_post( $id ) );
+
+		$this->assertFalse( post_type_supports( 'post', 'editor' ) );
+	}
+
 	public function test_render_panel_is_a_no_op_for_an_unflagged_page(): void {
 		$id = self::factory()->post->create( array( 'post_type' => 'page' ) );
 
@@ -133,6 +143,7 @@ class Test_Page_Mode extends WP_UnitTestCase {
 		// this global registration, and WP_UnitTestCase does not reset it
 		// automatically between tests.
 		add_post_type_support( 'page', 'editor' );
+		add_post_type_support( 'post', 'editor' );
 
 		parent::tearDown();
 	}

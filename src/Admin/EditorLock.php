@@ -47,8 +47,11 @@ final class EditorLock implements Hookable {
 
 		// Removing editor support is what actually stops post_content being
 		// submitted. Doing it here, on the screen that is about to render,
-		// keeps the change scoped to this request.
-		remove_post_type_support( 'page', 'editor' );
+		// keeps the change scoped to this request. The post's own type, not
+		// a hard-coded 'page' - this now also runs for a flagged Post, and
+		// hard-coding 'page' here would silently leave a Post's content
+		// field open to being overwritten by the classic editor.
+		remove_post_type_support( $post->post_type, 'editor' );
 
 		$may_edit = current_user_can( Capabilities::CAP );
 		?>
