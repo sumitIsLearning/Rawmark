@@ -33,3 +33,10 @@ export function savePage(id, data) {
     body: JSON.stringify(data),
   });
 }
+
+export function createSnippet(sourcePageId, name) {
+  return request('/snippets', {
+    method: 'POST',
+    body: JSON.stringify({ source_page_id: sourcePageId, name }),
+  });
+}
