@@ -54,10 +54,11 @@ final class Assets implements Hookable {
 			'rawmark-editor',
 			'rawmarkEditor',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'rawmark/v1' ) ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-				'postId'  => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
-				'homeUrl' => esc_url_raw( home_url( '/' ) ),
+				'restUrl'     => esc_url_raw( rest_url( 'rawmark/v1' ) ),
+				'nonce'       => wp_create_nonce( 'wp_rest' ),
+				'postId'      => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
+				'homeUrl'     => esc_url_raw( home_url( '/' ) ),
+				'snippetsUrl' => SnippetsScreen::url(),
 			)
 		);
 	}
