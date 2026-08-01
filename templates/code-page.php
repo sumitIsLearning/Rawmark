@@ -8,7 +8,10 @@
  */
 
 use Rawmark\Frontend\Escaper;
+use Rawmark\Frontend\PostDataTags;
 use Rawmark\Frontend\SnippetComposer;
+use Rawmark\Storage\PageFlag;
+use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\Source;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,11 +23,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 // inclusion - Router already validated this is our post type.
 $post = get_queried_object();
 
-$source   = Source::get( $post->ID );
+// A flagged Page/Post renders its own source. An ordinary unflagged Post
+// only ever reaches this template via the Post Template fallback (see
+// Router::is_rawmark_page()), so its content comes from the designated
+// template Snippet instead.
+$source_id = PageFlag::is_enabled( $post->ID ) ? $post->ID : PostTemplate::get_id();
+
+$source   = Source::get( $source_id );
 $settings = $source['settings'];
 
 $title       = '' !== $settings['seo_title'] ? $settings['seo_title'] : get_the_title( $post );
 $description = $settings['seo_description'];
+
+// Merge tags resolve for any Post being rendered here - individually
+// flagged or via the template fallback - never for a Page, which has no
+// "current post" context to substitute.
+if ( 'post' === $post->post_type ) {
+	$source['html'] = PostDataTags::resolve( $post->ID, $source['html'] );
+	$source['css']  = PostDataTags::resolve( $post->ID, $source['css'] );
+	$source['js']   = PostDataTags::resolve( $post->ID, $source['js'] );
+}
 
 $composed = SnippetComposer::compose( $post->ID, $source );
 

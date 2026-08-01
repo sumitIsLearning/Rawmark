@@ -7,6 +7,7 @@
 
 use Rawmark\Frontend\Escaper;
 use Rawmark\Storage\PageFlag;
+use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\Source;
 
 class Test_Renderer extends WP_UnitTestCase {
@@ -229,6 +230,73 @@ class Test_Renderer extends WP_UnitTestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( '<nav>real nav</nav>', $output );
+	}
+
+	public function test_an_unflagged_post_renders_through_the_designated_template(): void {
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $template, '<!-- rawmark:post_title -->', '', '', array() );
+		PostTemplate::set( $template );
+
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'post', 'post_status' => 'publish', 'post_title' => 'My Post' )
+		);
+
+		$this->go_to( get_permalink( $id ) );
+		$template_path = apply_filters( 'template_include', 'theme-template.php' );
+
+		$this->assertStringContainsString( 'code-page.php', $template_path );
+
+		ob_start();
+		include $template_path;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'My Post', $output );
+	}
+
+	public function test_an_unflagged_post_uses_the_theme_when_no_template_is_set(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'post', 'post_status' => 'publish' ) );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			'theme-template.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
+
+	public function test_a_flagged_post_renders_its_own_source_even_when_a_template_is_set(): void {
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $template, '<p>template content</p>', '', '', array() );
+		PostTemplate::set( $template );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'post', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save( $id, '<p>own content</p>', '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+		$template_path = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template_path;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'own content', $output );
+		$this->assertStringNotContainsString( 'template content', $output );
+	}
+
+	public function test_a_template_pointing_at_a_deleted_snippet_falls_back_to_the_theme(): void {
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		PostTemplate::set( $template );
+		wp_delete_post( $template, true );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'post', 'post_status' => 'publish' ) );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			'theme-template.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
 	}
 
 	public function tear_down(): void {

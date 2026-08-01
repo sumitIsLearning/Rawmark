@@ -8,6 +8,7 @@
 namespace Rawmark\Frontend;
 
 use Rawmark\Storage\PageFlag;
+use Rawmark\Storage\PostTemplate;
 use Rawmark\Support\Hookable;
 use WP_Post;
 
@@ -53,7 +54,14 @@ final class Router implements Hookable {
 	}
 
 	private function is_rawmark_page( WP_Post $post ): bool {
-		return is_singular( PageFlag::ELIGIBLE_TYPES ) && PageFlag::is_enabled( $post->ID );
+		if ( is_singular( PageFlag::ELIGIBLE_TYPES ) && PageFlag::is_enabled( $post->ID ) ) {
+			return true;
+		}
+
+		// The Post Template fallback: an ordinary, unflagged Post renders
+		// through the designated template Snippet instead of the theme. The
+		// individual flag above always wins when both apply - checked first.
+		return is_singular( 'post' ) && PostTemplate::is_set();
 	}
 
 	/**
