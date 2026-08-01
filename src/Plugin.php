@@ -11,6 +11,7 @@ use Rawmark\Admin\Assets;
 use Rawmark\Admin\EditorLock;
 use Rawmark\Admin\EditorScreen;
 use Rawmark\Admin\PageListIntegration;
+use Rawmark\Admin\HeaderFooterMetaBox;
 use Rawmark\Admin\PageModeToggle;
 use Rawmark\Admin\SnippetActions;
 use Rawmark\Admin\SnippetsScreen;
@@ -53,6 +54,7 @@ final class Plugin {
 			new Snippet(),
 			new SnippetActions(),
 			new SnippetsScreen(),
+			new HeaderFooterMetaBox(),
 		);
 
 		foreach ( $services as $service ) {
