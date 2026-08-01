@@ -120,6 +120,21 @@ class Test_Renderer extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_flagged_post_renders_the_plugin_template(): void {
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'post', 'post_status' => 'publish' )
+		);
+		PageFlag::enable( $id );
+		Source::save( $id, '<h1>Hi</h1>', '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertStringContainsString(
+			'code-page.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
+
 	public function test_flagged_page_renders_the_plugin_template(): void {
 		$id = self::factory()->post->create(
 			array( 'post_type' => 'page', 'post_status' => 'publish' )

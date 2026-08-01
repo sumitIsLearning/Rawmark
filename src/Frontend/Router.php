@@ -53,7 +53,7 @@ final class Router implements Hookable {
 	}
 
 	private function is_rawmark_page( WP_Post $post ): bool {
-		return is_singular( 'page' ) && PageFlag::is_enabled( $post->ID );
+		return is_singular( PageFlag::ELIGIBLE_TYPES ) && PageFlag::is_enabled( $post->ID );
 	}
 
 	/**
