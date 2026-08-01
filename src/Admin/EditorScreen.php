@@ -8,6 +8,7 @@
 
 namespace Rawmark\Admin;
 
+use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
 use Rawmark\Storage\PageFlag;
 use Rawmark\Support\Hookable;
@@ -88,11 +89,27 @@ final class EditorScreen implements Hookable {
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 		$post    = $post_id ? get_post( $post_id ) : null;
 
-		if ( ! $post || ! PageFlag::is_enabled( $post_id ) ) {
+		if ( ! $post || ! self::is_editable( $post_id ) ) {
 			wp_die( esc_html__( 'Rawmark page not found.', 'rawmark' ) );
 		}
+
+		$object_type = Snippet::SLUG === $post->post_type ? 'snippet' : 'page';
 		?>
-		<div id="rawmark-editor-root" class="rawmark-editor-root" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>"></div>
+		<div
+			id="rawmark-editor-root"
+			class="rawmark-editor-root"
+			data-post-id="<?php echo esc_attr( (string) $post_id ); ?>"
+			data-object-type="<?php echo esc_attr( $object_type ); ?>"
+		></div>
 		<?php
+	}
+
+	/**
+	 * Either a flagged Page or a Snippet - both are edited through this
+	 * same three-pane editor, since both store their content in exactly
+	 * the same _rawmark_source shape.
+	 */
+	private static function is_editable( int $post_id ): bool {
+		return PageFlag::is_enabled( $post_id ) || Snippet::SLUG === get_post_type( $post_id );
 	}
 }
