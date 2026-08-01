@@ -18,9 +18,11 @@ final class Routes implements Hookable {
 	public const REST_NAMESPACE = 'rawmark/v1';
 
 	private PagesController $pages_controller;
+	private SnippetsController $snippets_controller;
 
-	public function __construct( PagesController $pages_controller ) {
-		$this->pages_controller = $pages_controller;
+	public function __construct( PagesController $pages_controller, SnippetsController $snippets_controller ) {
+		$this->pages_controller    = $pages_controller;
+		$this->snippets_controller = $snippets_controller;
 	}
 
 	public function register(): void {
@@ -48,7 +50,77 @@ final class Routes implements Hookable {
 					'methods'             => 'PUT',
 					'callback'            => array( $this->pages_controller, 'update_item' ),
 					'permission_callback' => array( $this->pages_controller, 'check_permission' ),
-					'args'                => $this->update_args(),
+					'args'                => $this->page_update_args(),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/snippets',
+			array(
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this->snippets_controller, 'create_item' ),
+					'permission_callback' => array( $this->snippets_controller, 'check_permission' ),
+					'args'                => array(
+						'source_page_id' => array(
+							'required'          => true,
+							'validate_callback' => static function ( $value ): bool {
+								return is_numeric( $value ) && (int) $value > 0;
+							},
+						),
+						'name'            => array(
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/snippets/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this->snippets_controller, 'get_item' ),
+					'permission_callback' => array( $this->snippets_controller, 'check_permission' ),
+					'args'                => array(
+						'id' => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_numeric( $value ) && (int) $value > 0;
+							},
+						),
+					),
+				),
+				array(
+					'methods'             => 'PUT',
+					'callback'            => array( $this->snippets_controller, 'update_item' ),
+					'permission_callback' => array( $this->snippets_controller, 'check_permission' ),
+					'args'                => array(
+						'id'   => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_numeric( $value ) && (int) $value > 0;
+							},
+						),
+						'html' => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_string( $value );
+							},
+						),
+						'css'  => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_string( $value );
+							},
+						),
+						'js'   => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_string( $value );
+							},
+						),
+					),
 				),
 			)
 		);
@@ -57,7 +129,7 @@ final class Routes implements Hookable {
 	/**
 	 * @return array<string, array<string, callable>>
 	 */
-	private function update_args(): array {
+	private function page_update_args(): array {
 		return array(
 			'id'     => array(
 				'validate_callback' => static function ( $value ): bool {
