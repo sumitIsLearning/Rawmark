@@ -14,6 +14,7 @@ use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\PageModeToggle;
 use Rawmark\Frontend\Router;
 use Rawmark\Migration\Migrator;
+use Rawmark\PostType\Snippet;
 use Rawmark\Rest\PagesController;
 use Rawmark\Rest\Routes;
 use Rawmark\Security\Capabilities;
@@ -46,6 +47,7 @@ final class Plugin {
 			new EditorLock(),
 			new PageListIntegration(),
 			new ContentMirror(),
+			new Snippet(),
 		);
 
 		foreach ( $services as $service ) {
