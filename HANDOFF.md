@@ -180,13 +180,24 @@ again from scratch:
    Local assigned this site (`AppData/Roaming/Local/sites.json` →
    `services.mysql.ports.MYSQL` — `10005` for this site) —
    `DB_HOST => '127.0.0.1:10005'`.
-3. **The editor bundle is gitignored** (`assets/dist/`) — a merge or pull
-   that changes `assets/src/editor/*.jsx`/`*.js` does **not** rebuild
-   `assets/dist/editor.js` for you. Run `npm run build` after every pull
-   that touches `assets/src/`, or the browser silently keeps serving a
-   stale bundle. This bit once already this session (Save as Snippet button
-   invisible after a merge until `npm run build` ran in the right
-   directory).
+3. **`assets/dist/` is now committed to git — no longer gitignored, as of
+   `16d02f9`.** It used to be ignored on the assumption every deploy target
+   would run `npm run build` itself; in practice the plugin's only
+   real-world install method has been zipping the raw repo folder and
+   uploading it, which never included the built bundle — the block editor
+   panel and the three-pane editor loaded to a completely blank screen on
+   a live site installed this way. **The old gotcha still applies locally
+   though:** `assets/dist/` on disk does not auto-update when you `git
+   pull` new source changes or switch branches — a pull that changes
+   `assets/src/editor/*.jsx`/`*.js` updates the *source* file, but the
+   committed *build* only catches up once someone runs `npm run build`
+   and commits the result. Forgetting that step is now a stale **commit**
+   sitting in git, not just a gitignored file that silently regenerates
+   wrong — meaning a broken build can now ship to a live site if a future
+   PR changes `assets/src/` without also running `npm run build` before
+   committing. Treat `assets/dist/*` as a file that must be re-generated
+   and included in the same commit as any `assets/src/` change, same
+   discipline as a lockfile.
 
 Also fixed as a real (not env) bug: `WP_REST_Request::set_body_params()`
 returns `void` in WP core, so `(new WP_REST_Request(...))->set_body_params(...)`
