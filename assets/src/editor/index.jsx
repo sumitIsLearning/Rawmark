@@ -522,6 +522,7 @@ function EditorApp({ postId, objectType }) {
           {objectType === 'page' && (
             <>
               <select
+                className="rawmark-editor__select"
                 title="Header snippet"
                 aria-label="Header snippet"
                 value={headerSnippetId || ''}
@@ -537,6 +538,7 @@ function EditorApp({ postId, objectType }) {
                   ))}
               </select>
               <select
+                className="rawmark-editor__select"
                 title="Footer snippet"
                 aria-label="Footer snippet"
                 value={footerSnippetId || ''}
@@ -598,7 +600,7 @@ function EditorApp({ postId, objectType }) {
 
           {objectType === 'page' && snippets.length > 0 && (
             <select
-              className="rawmark-editor__snippet-select"
+              className="rawmark-editor__select"
               title="Insert a snippet marker at the cursor"
               aria-label="Insert Snippet"
               value=""
