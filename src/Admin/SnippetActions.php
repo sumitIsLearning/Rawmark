@@ -10,6 +10,7 @@ namespace Rawmark\Admin;
 
 use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\SnippetUsage;
 use Rawmark\Storage\Source;
@@ -21,9 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class SnippetActions implements Hookable {
 
-	public const ACTION_LINK   = 'rawmark_snippet_link';
-	public const ACTION_UNLINK = 'rawmark_snippet_unlink';
-	public const ACTION_DELETE = 'rawmark_snippet_delete';
+	public const ACTION_LINK           = 'rawmark_snippet_link';
+	public const ACTION_UNLINK         = 'rawmark_snippet_unlink';
+	public const ACTION_DELETE         = 'rawmark_snippet_delete';
+	public const ACTION_SET_TEMPLATE   = 'rawmark_snippet_set_template';
+	public const ACTION_UNSET_TEMPLATE = 'rawmark_snippet_unset_template';
 
 	private const MARKER_TEMPLATE = "/<!--\\s*rawmark:snippet\\s+id='%d'\\s*-->/";
 
@@ -31,6 +34,8 @@ final class SnippetActions implements Hookable {
 		add_action( 'admin_post_' . self::ACTION_LINK, array( $this, 'handle_link' ) );
 		add_action( 'admin_post_' . self::ACTION_UNLINK, array( $this, 'handle_unlink' ) );
 		add_action( 'admin_post_' . self::ACTION_DELETE, array( $this, 'handle_delete' ) );
+		add_action( 'admin_post_' . self::ACTION_SET_TEMPLATE, array( $this, 'handle_set_template' ) );
+		add_action( 'admin_post_' . self::ACTION_UNSET_TEMPLATE, array( $this, 'handle_unset_template' ) );
 	}
 
 	public static function link_url( int $snippet_id ): string {
@@ -43,6 +48,14 @@ final class SnippetActions implements Hookable {
 
 	public static function delete_url( int $snippet_id ): string {
 		return self::build_url( self::ACTION_DELETE, $snippet_id );
+	}
+
+	public static function set_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_SET_TEMPLATE, $snippet_id );
+	}
+
+	public static function unset_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_UNSET_TEMPLATE, $snippet_id );
 	}
 
 	private static function build_url( string $action, int $snippet_id ): string {
@@ -74,6 +87,24 @@ final class SnippetActions implements Hookable {
 		$id = $this->authorize( self::ACTION_DELETE );
 
 		wp_delete_post( $id, true );
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_set_template(): void {
+		$id = $this->authorize( self::ACTION_SET_TEMPLATE );
+
+		PostTemplate::set( $id );
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_unset_template(): void {
+		$id = $this->authorize( self::ACTION_UNSET_TEMPLATE );
+
+		PostTemplate::clear();
 
 		wp_safe_redirect( SnippetsScreen::url() );
 		exit;

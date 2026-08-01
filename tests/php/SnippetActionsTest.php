@@ -15,6 +15,28 @@ class Test_Snippet_Actions extends WP_UnitTestCase {
 		$this->assertStringContainsString( (string) $id, $url );
 	}
 
+	public function test_set_template_url_carries_a_nonce(): void {
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+
+		$url = SnippetActions::set_template_url( $id );
+
+		$this->assertStringContainsString( '_wpnonce=', $url );
+		$this->assertStringContainsString( (string) $id, $url );
+	}
+
+	public function test_a_user_without_the_capability_cannot_set_the_template(): void {
+		$editor = self::factory()->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $editor );
+		( new SnippetActions() )->register();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+
+		$_GET['snippet']      = $id;
+		$_REQUEST['_wpnonce'] = wp_create_nonce( SnippetActions::ACTION_SET_TEMPLATE . '_' . $id );
+
+		$this->expectException( 'WPDieException' );
+		do_action( 'admin_post_' . SnippetActions::ACTION_SET_TEMPLATE );
+	}
+
 	// handle_link()/handle_unlink()/handle_delete() end in wp_safe_redirect()
 	// then a bare `exit;` - matching the established PageModeToggle pattern
 	// from Phase 1. That `exit` is real PHP, not wp_die(): the test suite's
