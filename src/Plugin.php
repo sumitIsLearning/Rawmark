@@ -12,6 +12,8 @@ use Rawmark\Admin\EditorLock;
 use Rawmark\Admin\EditorScreen;
 use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\PageModeToggle;
+use Rawmark\Admin\SnippetActions;
+use Rawmark\Admin\SnippetsScreen;
 use Rawmark\Frontend\Router;
 use Rawmark\Migration\Migrator;
 use Rawmark\PostType\Snippet;
@@ -49,6 +51,8 @@ final class Plugin {
 			new PageListIntegration(),
 			new ContentMirror(),
 			new Snippet(),
+			new SnippetActions(),
+			new SnippetsScreen(),
 		);
 
 		foreach ( $services as $service ) {
