@@ -15,10 +15,9 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
 		Source::save( $page, '<h1>Hi</h1>', '.x{}', 'f();', array() );
 
-		$response = rest_get_server()->dispatch(
-			( new WP_REST_Request( 'POST', '/rawmark/v1/snippets' ) )
-				->set_body_params( array( 'source_page_id' => $page, 'name' => 'Header' ) )
-		);
+		$request = new WP_REST_Request( 'POST', '/rawmark/v1/snippets' );
+		$request->set_body_params( array( 'source_page_id' => $page, 'name' => 'Header' ) );
+		$response = rest_get_server()->dispatch( $request );
 
 		$this->assertSame( 201, $response->get_status() );
 		$id = $response->get_data()['id'];
@@ -39,10 +38,9 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$editor = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $editor );
 
-		$response = rest_get_server()->dispatch(
-			( new WP_REST_Request( 'POST', '/rawmark/v1/snippets' ) )
-				->set_body_params( array( 'source_page_id' => $page, 'name' => 'Nope' ) )
-		);
+		$request = new WP_REST_Request( 'POST', '/rawmark/v1/snippets' );
+		$request->set_body_params( array( 'source_page_id' => $page, 'name' => 'Nope' ) );
+		$response = rest_get_server()->dispatch( $request );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -72,10 +70,9 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
 		Source::save( $id, 'old', '', '', array() );
 
-		$response = rest_get_server()->dispatch(
-			( new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id ) )
-				->set_body_params( array( 'html' => 'new' ) )
-		);
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'html' => 'new' ) );
+		$response = rest_get_server()->dispatch( $request );
 
 		$this->assertSame( 200, $response->get_status() );
 
@@ -86,10 +83,9 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 	public function test_an_unauthenticated_update_is_rejected(): void {
 		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
 
-		$response = rest_get_server()->dispatch(
-			( new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id ) )
-				->set_body_params( array( 'html' => 'x' ) )
-		);
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'html' => 'x' ) );
+		$response = rest_get_server()->dispatch( $request );
 
 		$this->assertSame( 401, $response->get_status() );
 	}
