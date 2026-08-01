@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/gutenberg-panel.js"],
+  "sourcesContent": ["/**\r\n * \"Edit with Rawmark\" panel in the block editor's Document sidebar, for a\r\n * Page or Post that isn't flagged yet. Plain wp.* globals, not bundled -\r\n * WordPress already loads react/wp-element/wp-plugins/wp-edit-post on this\r\n * screen, and this file has nothing else to depend on.\r\n */\r\n(function () {\r\n  var config = window.rawmarkGutenberg || {};\r\n  var el = window.wp.element.createElement;\r\n  var registerPlugin = window.wp.plugins.registerPlugin;\r\n  var PluginDocumentSettingPanel = window.wp.editPost.PluginDocumentSettingPanel;\r\n\r\n  function RawmarkPanel() {\r\n    return el(\r\n      PluginDocumentSettingPanel,\r\n      { name: 'rawmark-panel', title: 'Rawmark' },\r\n      el(\r\n        'a',\r\n        { href: config.enableUrl, className: 'button button-primary' },\r\n        'Edit with Rawmark'\r\n      )\r\n    );\r\n  }\r\n\r\n  registerPlugin('rawmark-panel', { render: RawmarkPanel });\r\n})();\r\n"],
+  "mappings": "OAMC,UAAY,CACX,IAAIA,EAAS,OAAO,kBAAoB,CAAC,EACrCC,EAAK,OAAO,GAAG,QAAQ,cACvBC,EAAiB,OAAO,GAAG,QAAQ,eACnCC,EAA6B,OAAO,GAAG,SAAS,2BAEpD,SAASC,GAAe,CACtB,OAAOH,EACLE,EACA,CAAE,KAAM,gBAAiB,MAAO,SAAU,EAC1CF,EACE,IACA,CAAE,KAAMD,EAAO,UAAW,UAAW,uBAAwB,EAC7D,mBACF,CACF,CACF,CAEAE,EAAe,gBAAiB,CAAE,OAAQE,CAAa,CAAC,CAC1D,GAAG",
+  "names": ["config", "el", "registerPlugin", "PluginDocumentSettingPanel", "RawmarkPanel"]
+}
