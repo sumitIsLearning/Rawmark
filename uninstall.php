@@ -1,8 +1,9 @@
 <?php
 /**
- * Removes the rawmark_edit_code capability. Deliberately does NOT delete
- * Code Pages - data loss on accidental uninstall is worse than a few
- * orphaned posts. No plugin options exist yet in this build.
+ * Removes the rawmark_edit_code capability and the Post Template option.
+ * Deliberately does NOT delete Code Pages or Snippets - data loss on
+ * accidental uninstall is worse than a few orphaned posts. The option only
+ * points at a Snippet; deleting the pointer is not deleting content.
  *
  * @package Rawmark
  */
@@ -18,5 +19,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 // never actually removed.
 require_once __DIR__ . '/src/Support/Hookable.php';
 require_once __DIR__ . '/src/Security/Capabilities.php';
+require_once __DIR__ . '/src/PostType/Snippet.php';
+require_once __DIR__ . '/src/Storage/PostTemplate.php';
 
 Rawmark\Security\Capabilities::uninstall();
+Rawmark\Storage\PostTemplate::clear();
