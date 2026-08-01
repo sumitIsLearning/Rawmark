@@ -2,7 +2,7 @@
 
 ## Just landed on main
 
-Three pieces merged and pushed to `origin/main` (now at `2916345`):
+Six pieces merged and pushed to `origin/main` (now at `c62a4ca`):
 
 1. **Linked snippets backend** — `rawmark_snippet` post type, `_rawmark_linked`
    flag, placement finder, render-time composer (marker expansion +
@@ -11,12 +11,31 @@ Three pieces merged and pushed to `origin/main` (now at `2916345`):
 2. **Rawmark on Posts (single post detail page)** — the flag/router/toggle/
    editor-lock/list-integration mechanism that used to be Page-only now
    accepts a Post too, via `PageFlag::ELIGIBLE_TYPES = ['page', 'post']`.
-   Blog index/archive stays themed — out of scope, unchanged. Snippets and
-   the header/footer picker were **not** extended to Posts — not asked for.
-3. **"Save as Snippet" editor button** — the REST endpoint from (1) had no
-   UI calling it. Added a topbar button (Page/flagged-Post editor only, not
-   shown when editing a Snippet itself) that prompts for a name and calls
-   `POST /rawmark/v1/snippets`.
+3. **"Save as Snippet" editor button** — calls the REST endpoint from (1),
+   which had no UI calling it before.
+4. **Editor UI chores** — "Edit with Rawmark" panel in the Gutenberg
+   Document sidebar (`src/Admin/GutenbergPanel.php`, its own small esbuild
+   entry point), a "View" button (real permalink, new tab), an "Insert
+   Media" button (`wp.media()`, inserts at cursor as `<img>`/`<video>` in
+   the HTML pane or a bare URL elsewhere).
+5. **Snippet listing + header/footer over REST** — `GET /rawmark/v1/snippets`
+   (every snippet + its linked state), `PUT /rawmark/v1/pages/{id}` now also
+   accepts `headerSnippetId`/`footerSnippetId`. Backs an "Insert Snippet"
+   picker and header/footer dropdowns *inside* the three-pane editor — they
+   used to only exist on the classic wp-admin Page edit screen, which the
+   normal "Edit with Rawmark" navigation path never actually visits.
+6. **Post Template (shared single-post layout)** — a Snippet can be
+   designated the site's Post Template (`rawmark_post_template_id` option,
+   set/unset from the Snippets screen). Every *unflagged* Post then renders
+   through it instead of the theme, with `<!-- rawmark:post_title -->` /
+   `post_content` / `post_excerpt` / `post_date` / `featured_image` /
+   `permalink` / `author_name` markers substituted for that post's real
+   data (`post_content` runs through WordPress's real `the_content` filter
+   chain — blocks/shortcodes/embeds all work). An individually-flagged Post
+   still renders its own source and always wins over the template. A
+   template pointing at a deleted/wrong-type Snippet fails safe straight
+   back to the theme — `PostTemplate::is_set()` is the only gate anything
+   needs, no guard duplicated anywhere else.
 
 Design/plan docs (all local-only — see "docs/ is gitignored" below):
 - `docs/superpowers/specs/2026-07-31-linked-snippets-design.md`
@@ -24,23 +43,28 @@ Design/plan docs (all local-only — see "docs/ is gitignored" below):
 - `docs/superpowers/specs/2026-08-01-rawmark-for-posts-design.md`
 - `docs/superpowers/plans/2026-08-01-rawmark-for-posts.md`
 - `docs/superpowers/plans/2026-08-01-save-as-snippet-ui.md`
+- `docs/superpowers/specs/2026-08-01-post-template-design.md`
+- `docs/superpowers/plans/2026-08-01-post-template.md`
+(Pieces 4-5 above were small enough they were implemented directly from
+conversation, no separate spec/plan doc — same bar item 1's original plan
+used for "is this worth a doc" throughout this project.)
 
-Verified with real `vendor/bin/phpunit` runs (not just `php -l`): **101/101
-PHP tests green**, plus the JS suite (`npm test`, `tests/js/`) unaffected.
-Zero known failures anywhere in the suite as of this handoff.
+Verified with real `vendor/bin/phpunit` runs on the actual merged `main`
+tree (not just `php -l`, not just on a feature branch): **131/131 PHP tests
+green**, plus the JS suite (`npm test`) unaffected. Zero known failures
+anywhere in the suite as of this handoff.
 
-The worktree that did this work (`.claude/worktrees/linked-snippets-backend`,
-branches `worktree-linked-snippets-backend` and
-`worktree-rawmark-posts-and-snippet-ui`) has been removed and both branches
-deleted — fully merged, nothing left to clean up.
+Every worktree and feature branch used to build the above
+(`worktree-linked-snippets-backend`, `worktree-rawmark-posts-and-snippet-ui`,
+`rawmark-editor-chores`, `post-template`) has been merged, verified on
+`main`, and deleted — nothing left to clean up.
 
 ## Still needs a human: manual UI verification
 
-The "Save as Snippet" button (piece 3 above) was built and unit-tested at
-the API-wrapper level, but **the actual click-through in a browser has not
-been verified** — no browser automation tool was available this session.
-Before trusting it in production, check:
+Two things were built and unit-tested but **never actually clicked through
+in a browser** — no browser automation tool was available this session:
 
+**"Save as Snippet" button:**
 1. Open a flagged Page in the Rawmark editor. Confirm "Save as Snippet"
    appears in the topbar and "Save draft"/"Publish" still work.
 2. Click it, type a name, confirm. Confirm the green confirmation message
@@ -53,6 +77,20 @@ Before trusting it in production, check:
    Cancel aborts cleanly (no snippet created).
 
 Full detail: `docs/superpowers/plans/2026-08-01-save-as-snippet-ui.md`, Task 3 Step 7.
+
+**Post Template**, once you have at least one real blog post:
+1. Rawmark → Snippets → build a small layout with `<!-- rawmark:post_title -->`
+   and `<!-- rawmark:post_content -->` in it, click "Set as Post Template".
+2. Visit a normal, never-flagged Post on the front end. Confirm it renders
+   through the layout with the real title/content substituted in, not the
+   theme.
+3. Visit the Snippets screen again — confirm the ★ badge and "Unset
+   Template" link show on the right row.
+4. Individually flag a *different* Post with the existing per-post toggle,
+   give it its own content. Confirm that one still renders its own content,
+   not the template — the flag must win.
+5. Click "Unset Template". Confirm the Post from step 2 goes back to the
+   theme.
 
 ## `docs/` is gitignored — this project's convention, not an accident
 
@@ -101,6 +139,13 @@ again from scratch:
    Local assigned this site (`AppData/Roaming/Local/sites.json` →
    `services.mysql.ports.MYSQL` — `10005` for this site) —
    `DB_HOST => '127.0.0.1:10005'`.
+3. **The editor bundle is gitignored** (`assets/dist/`) — a merge or pull
+   that changes `assets/src/editor/*.jsx`/`*.js` does **not** rebuild
+   `assets/dist/editor.js` for you. Run `npm run build` after every pull
+   that touches `assets/src/`, or the browser silently keeps serving a
+   stale bundle. This bit once already this session (Save as Snippet button
+   invisible after a merge until `npm run build` ran in the right
+   directory).
 
 Also fixed as a real (not env) bug: `WP_REST_Request::set_body_params()`
 returns `void` in WP core, so `(new WP_REST_Request(...))->set_body_params(...)`
