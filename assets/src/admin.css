@@ -156,7 +156,12 @@ body.rawmark-editor-screen #wpbody-content > .error {
 	display: inline-block;
 }
 
-.rawmark-editor__btn {
+/* .rawmark-editor__select shares this block on purpose - one definition of
+   "what a toolbar control looks like" that both a <button> and a <select>
+   pull from, so a future change here (radius, border color, height) can't
+   drift between the two the way two separately-maintained copies did. */
+.rawmark-editor__btn,
+.rawmark-editor__select {
 	height: 32px;
 	padding: 0 14px;
 	border: 1px solid var(--rm-hairline-strong);
@@ -168,8 +173,11 @@ body.rawmark-editor-screen #wpbody-content > .error {
 	font-weight: 500;
 	cursor: pointer;
 }
-.rawmark-editor__btn:hover {
-	background: var(--rm-canvas-soft);
+.rawmark-editor__btn:hover,
+.rawmark-editor__select:hover {
+	/* background-color, not the background shorthand - shorthand resets
+	   background-image to none, which would delete the select's arrow. */
+	background-color: var(--rm-canvas-soft);
 }
 .rawmark-editor__btn--primary {
 	padding: 0 16px;
@@ -186,24 +194,18 @@ body.rawmark-editor-screen #wpbody-content > .error {
 	transform: scale(.97);
 }
 
+/* Everything below only exists because a <select> needs a custom arrow
+   (appearance: none drops the native one) and can overflow a long snippet
+   title - not because it looks different from a button. */
 .rawmark-editor__select {
-	height: 32px;
-	padding: 0 28px 0 14px;
-	border: 1px solid var(--rm-hairline-strong);
-	border-radius: var(--rm-radius-md);
-	background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
-	color: var(--rm-ink);
-	font-family: inherit;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
+	padding-right: 28px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
 	appearance: none;
 	max-width: 160px;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-.rawmark-editor__select:hover {
-	background-color: var(--rm-canvas-soft);
 }
 .rawmark-editor__select:focus {
 	border-color: var(--rm-primary);
