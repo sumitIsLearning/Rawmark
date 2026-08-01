@@ -35,6 +35,11 @@ final class Assets implements Hookable {
 			return;
 		}
 
+		// wp.media(), used by the editor's "Insert Media" button - the same
+		// call core makes on the classic Page/Post edit screen to make the
+		// media library modal available.
+		wp_enqueue_media();
+
 		wp_enqueue_script(
 			'rawmark-editor',
 			RAWMARK_URL . 'assets/dist/editor.js',

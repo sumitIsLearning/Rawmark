@@ -73,13 +73,14 @@ final class PagesController {
 
 		return new WP_REST_Response(
 			array(
-				'id'       => $id,
-				'title'    => $this->display_title( $post ),
-				'status'   => $post->post_status,
-				'html'     => $source['html'],
-				'css'      => $source['css'],
-				'js'       => $source['js'],
-				'settings' => $source['settings'],
+				'id'        => $id,
+				'title'     => $this->display_title( $post ),
+				'status'    => $post->post_status,
+				'permalink' => get_permalink( $post ),
+				'html'      => $source['html'],
+				'css'       => $source['css'],
+				'js'        => $source['js'],
+				'settings'  => $source['settings'],
 			),
 			200
 		);

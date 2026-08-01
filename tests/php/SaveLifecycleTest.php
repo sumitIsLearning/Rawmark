@@ -76,6 +76,19 @@ class Test_Save_Lifecycle extends WP_UnitTestCase {
 		$this->assertSame( '', $response->get_data()['title'] );
 	}
 
+	// The editor's "View" button reads this field directly off the initial
+	// GET rather than re-deriving it - update_item() already returned
+	// permalink on every save, get_item() had silently never carried it.
+	public function test_get_item_returns_the_permalink(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		\Rawmark\Storage\PageFlag::enable( $id );
+
+		$request  = new WP_REST_Request( 'GET', '/rawmark/v1/pages/' . $id );
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( get_permalink( $id ), $response->get_data()['permalink'] );
+	}
+
 	public function test_saving_a_published_page_does_not_unpublish_it(): void {
 		$id = self::factory()->post->create(
 			array(

@@ -103,6 +103,7 @@ function EditorApp({ postId, objectType }) {
   const [cursor, setCursor] = useState({ ln: 1, col: 1 });
   const [snippetMsg, setSnippetMsg] = useState('');
   const [snippetError, setSnippetError] = useState('');
+  const [permalink, setPermalink] = useState('');
 
   const paneRefs = useRef({});
   const paneInstances = useRef({});
@@ -205,6 +206,7 @@ function EditorApp({ postId, objectType }) {
         const next = { html: data.html || '', css: data.css || '', js: data.js || '' };
         setTitle(data.title || '');
         setStatus(data.status || 'draft');
+        setPermalink(data.permalink || '');
         setSource(next);
         setSaveState('saved');
         savedAtRef.current = Date.now();
@@ -269,6 +271,7 @@ function EditorApp({ postId, objectType }) {
       savePage(postId, payload)
         .then((data) => {
           setStatus(data.status);
+          setPermalink(data.permalink || '');
           setSaveState('saved');
           savedAtRef.current = Date.now();
           setSavedAgo('just now');
@@ -358,6 +361,39 @@ function EditorApp({ postId, objectType }) {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+  };
+
+  const onInsertMedia = () => {
+    if (!window.wp || !window.wp.media) {
+      return;
+    }
+
+    const frame = window.wp.media({
+      title: 'Insert Media',
+      button: { text: 'Insert' },
+      library: { type: ['image', 'video'] },
+      multiple: false,
+    });
+
+    frame.on('select', () => {
+      const attachment = frame.state().get('selection').first().toJSON();
+      const pane = paneInstances.current[activeRef.current];
+      if (!pane) {
+        return;
+      }
+
+      const isVideo = attachment.type === 'video';
+      const snippet =
+        activeRef.current === 'html'
+          ? isVideo
+            ? `<video src="${attachment.url}" controls></video>`
+            : `<img src="${attachment.url}" alt="">`
+          : attachment.url;
+
+      pane.insertAtCursor(snippet);
+    });
+
+    frame.open();
   };
 
   const onRefresh = () => {
@@ -481,6 +517,16 @@ function EditorApp({ postId, objectType }) {
         </div>
 
         <div className="rawmark-editor__toolbar-right">
+          <button
+            type="button"
+            title="Insert Media"
+            aria-label="Insert Media"
+            className="rm-icon-btn rawmark-editor__icon-btn"
+            onClick={onInsertMedia}
+          >
+            <Icon name="image" />
+          </button>
+
           <div className="rawmark-editor__seg">
             {Object.keys(VIEWPORTS).map((key) => (
               <button
@@ -535,6 +581,19 @@ function EditorApp({ postId, objectType }) {
           >
             <Icon name="refresh" />
           </button>
+
+          {permalink && (
+            <a
+              href={permalink}
+              target="_blank"
+              rel="noreferrer"
+              title="View on the live site"
+              aria-label="View on the live site"
+              className="rm-icon-btn rawmark-editor__icon-btn"
+            >
+              <Icon name="external" />
+            </a>
+          )}
         </div>
       </div>
 

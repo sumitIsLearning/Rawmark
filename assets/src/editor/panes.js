@@ -56,6 +56,17 @@ export function createPane(container, { language, initialValue = '', onChange, o
         changes: { from: 0, to: current.length, insert: value },
       });
     },
+    // Replaces the current selection (a collapsed cursor is a zero-length
+    // selection) with text, then places the cursor right after it - the
+    // same shape as typing the text by hand.
+    insertAtCursor(text) {
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+      });
+      view.focus();
+    },
     focus: () => view.focus(),
     remeasure: () => view.requestMeasure(),
     destroy: () => view.destroy(),
