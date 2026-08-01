@@ -40,3 +40,7 @@ export function createSnippet(sourcePageId, name) {
     body: JSON.stringify({ source_page_id: sourcePageId, name }),
   });
 }
+
+export function listSnippets() {
+  return request('/snippets', { method: 'GET' });
+}

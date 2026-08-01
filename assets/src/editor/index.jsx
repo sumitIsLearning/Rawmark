@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPane } from './panes';
 import { createPreview } from './preview';
-import { getPage, savePage, createSnippet } from './api-client';
+import { getPage, savePage, createSnippet, listSnippets } from './api-client';
 import { Icon } from './icons';
 
 const PANES = [
@@ -104,6 +104,9 @@ function EditorApp({ postId, objectType }) {
   const [snippetMsg, setSnippetMsg] = useState('');
   const [snippetError, setSnippetError] = useState('');
   const [permalink, setPermalink] = useState('');
+  const [snippets, setSnippets] = useState([]);
+  const [headerSnippetId, setHeaderSnippetId] = useState(0);
+  const [footerSnippetId, setFooterSnippetId] = useState(0);
 
   const paneRefs = useRef({});
   const paneInstances = useRef({});
@@ -207,6 +210,8 @@ function EditorApp({ postId, objectType }) {
         setTitle(data.title || '');
         setStatus(data.status || 'draft');
         setPermalink(data.permalink || '');
+        setHeaderSnippetId(data.headerSnippetId || 0);
+        setFooterSnippetId(data.footerSnippetId || 0);
         setSource(next);
         setSaveState('saved');
         savedAtRef.current = Date.now();
@@ -230,6 +235,22 @@ function EditorApp({ postId, objectType }) {
       cancelled = true;
     };
   }, [postId, updatePreviewNow]);
+
+  // The full snippet list, fetched once - used by both the "Insert Snippet"
+  // picker (every snippet) and the header/footer pickers (filtered to
+  // linked: true below). A Snippet's own editor has nothing to place a
+  // snippet into in this sense, so it skips the fetch entirely.
+  useEffect(() => {
+    if (objectType !== 'page') {
+      return;
+    }
+    listSnippets()
+      .then((data) => setSnippets(data))
+      .catch(() => {
+        // Non-fatal: the pickers just render empty. The rest of the editor
+        // (save/publish/panes) must keep working even if this list fails.
+      });
+  }, [objectType]);
 
   // "Saved Xm ago" ticks forward without a fresh save.
   useEffect(() => {
@@ -281,6 +302,20 @@ function EditorApp({ postId, objectType }) {
           setError(err.message);
           setSaveState('failed');
         });
+    },
+    [postId]
+  );
+
+  // Header/footer selection saves immediately on change, independent of
+  // Save draft/Publish - it's a placement setting, not editor content, and
+  // waiting for an unrelated save action to also carry it would be a
+  // confusing way to lose a selection if the user never hits Save.
+  const savePlacement = useCallback(
+    (field, snippetId) => {
+      const setter = field === 'headerSnippetId' ? setHeaderSnippetId : setFooterSnippetId;
+      savePage(postId, { [field]: snippetId })
+        .then((data) => setter(data[field] || 0))
+        .catch((err) => setError(err.message));
     },
     [postId]
   );
@@ -484,6 +519,40 @@ function EditorApp({ postId, objectType }) {
               Save as Snippet
             </button>
           )}
+          {objectType === 'page' && (
+            <>
+              <select
+                title="Header snippet"
+                aria-label="Header snippet"
+                value={headerSnippetId || ''}
+                onChange={(event) => savePlacement('headerSnippetId', Number(event.target.value) || 0)}
+              >
+                <option value="">Header: None</option>
+                {snippets
+                  .filter((snippet) => snippet.linked)
+                  .map((snippet) => (
+                    <option key={snippet.id} value={snippet.id}>
+                      Header: {snippet.title || `Snippet #${snippet.id}`}
+                    </option>
+                  ))}
+              </select>
+              <select
+                title="Footer snippet"
+                aria-label="Footer snippet"
+                value={footerSnippetId || ''}
+                onChange={(event) => savePlacement('footerSnippetId', Number(event.target.value) || 0)}
+              >
+                <option value="">Footer: None</option>
+                {snippets
+                  .filter((snippet) => snippet.linked)
+                  .map((snippet) => (
+                    <option key={snippet.id} value={snippet.id}>
+                      Footer: {snippet.title || `Snippet #${snippet.id}`}
+                    </option>
+                  ))}
+              </select>
+            </>
+          )}
           <button type="button" className="rawmark-editor__btn rawmark-editor__btn--ghost" onClick={() => doSave()}>
             Save draft
           </button>
@@ -526,6 +595,29 @@ function EditorApp({ postId, objectType }) {
           >
             <Icon name="image" />
           </button>
+
+          {objectType === 'page' && snippets.length > 0 && (
+            <select
+              className="rawmark-editor__snippet-select"
+              title="Insert a snippet marker at the cursor"
+              aria-label="Insert Snippet"
+              value=""
+              onChange={(event) => {
+                const id = event.target.value;
+                const pane = paneInstances.current[activeRef.current];
+                if (id && pane) {
+                  pane.insertAtCursor(`<!-- rawmark:snippet id='${id}' -->`);
+                }
+              }}
+            >
+              <option value="">Insert Snippet…</option>
+              {snippets.map((snippet) => (
+                <option key={snippet.id} value={snippet.id}>
+                  {snippet.title || `Snippet #${snippet.id}`}
+                </option>
+              ))}
+            </select>
+          )}
 
           <div className="rawmark-editor__seg">
             {Object.keys(VIEWPORTS).map((key) => (
