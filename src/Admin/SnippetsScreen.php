@@ -9,6 +9,7 @@ namespace Rawmark\Admin;
 
 use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\SnippetUsage;
 use Rawmark\Support\Hookable;
@@ -54,7 +55,7 @@ final class SnippetsScreen implements Hookable {
 			wp_die( esc_html__( 'You do not have permission to do that.', 'rawmark' ) );
 		}
 
-		$snippets = get_posts(
+		$snippets    = get_posts(
 			array(
 				'post_type'      => Snippet::SLUG,
 				'post_status'    => 'any',
@@ -63,6 +64,7 @@ final class SnippetsScreen implements Hookable {
 				'order'          => 'ASC',
 			)
 		);
+		$template_id = PostTemplate::get_id();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Snippets', 'rawmark' ); ?></h1>
@@ -87,7 +89,12 @@ final class SnippetsScreen implements Hookable {
 					?>
 					<tr>
 						<td>#<?php echo (int) $snippet->ID; ?></td>
-						<td><?php echo esc_html( $snippet->post_title ); ?></td>
+						<td>
+							<?php echo esc_html( $snippet->post_title ); ?>
+							<?php if ( $snippet->ID === $template_id ) : ?>
+								<span class="dashicons dashicons-star-filled" title="<?php esc_attr_e( 'Post Template', 'rawmark' ); ?>"></span>
+							<?php endif; ?>
+						</td>
 						<td>
 							<?php if ( $linked ) : ?>
 								<a href="<?php echo esc_url( SnippetActions::unlink_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Unlink', 'rawmark' ); ?></a>
@@ -119,6 +126,12 @@ final class SnippetsScreen implements Hookable {
 									);
 								?>');"
 							><?php esc_html_e( 'Delete', 'rawmark' ); ?></a>
+							|
+							<?php if ( $snippet->ID === $template_id ) : ?>
+								<a href="<?php echo esc_url( SnippetActions::unset_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Unset Template', 'rawmark' ); ?></a>
+							<?php else : ?>
+								<a href="<?php echo esc_url( SnippetActions::set_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Set as Post Template', 'rawmark' ); ?></a>
+							<?php endif; ?>
 						</td>
 					</tr>
 				<?php endforeach; ?>
