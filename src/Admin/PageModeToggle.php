@@ -79,7 +79,7 @@ final class PageModeToggle implements Hookable {
 
 		check_admin_referer( $action . '_' . $post_id );
 
-		if ( ! $post_id || 'page' !== get_post_type( $post_id ) ) {
+		if ( ! $post_id || ! in_array( get_post_type( $post_id ), PageFlag::ELIGIBLE_TYPES, true ) ) {
 			wp_die( esc_html__( 'Page not found.', 'rawmark' ), '', array( 'response' => 404 ) );
 		}
 
