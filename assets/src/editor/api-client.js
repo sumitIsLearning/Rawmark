@@ -44,3 +44,14 @@ export function createSnippet(sourcePageId, name) {
 export function listSnippets() {
   return request('/snippets', { method: 'GET' });
 }
+
+export function getSnippet(id) {
+  return request(`/snippets/${id}`, { method: 'GET' });
+}
+
+export function saveSnippet(id, data) {
+  return request(`/snippets/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}

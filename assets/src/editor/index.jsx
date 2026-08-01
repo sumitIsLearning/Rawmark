@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPane } from './panes';
 import { createPreview } from './preview';
-import { getPage, savePage, createSnippet, listSnippets } from './api-client';
+import { getPage, savePage, createSnippet, listSnippets, getSnippet, saveSnippet } from './api-client';
 import { Icon } from './icons';
 
 const PANES = [
@@ -201,7 +201,11 @@ function EditorApp({ postId, objectType }) {
   useEffect(() => {
     let cancelled = false;
 
-    getPage(postId)
+    // A Snippet has its own, smaller REST shape - GET /snippets/{id} returns
+    // only {id, title, html, css, js}, no status/permalink/header/footer.
+    // The fallbacks below (|| 'draft', || '', || 0) are what make loading
+    // that narrower shape safe without a second, near-duplicate handler.
+    (objectType === 'snippet' ? getSnippet(postId) : getPage(postId))
       .then((data) => {
         if (cancelled) {
           return;
@@ -234,7 +238,7 @@ function EditorApp({ postId, objectType }) {
     return () => {
       cancelled = true;
     };
-  }, [postId, updatePreviewNow]);
+  }, [postId, objectType, updatePreviewNow]);
 
   // The full snippet list, fetched once - used by both the "Insert Snippet"
   // picker (every snippet) and the header/footer pickers (filtered to
@@ -272,26 +276,43 @@ function EditorApp({ postId, objectType }) {
       });
       setError('');
 
-      // `status` is sent only when the save is actually changing it (i.e.
-      // Publish). Echoing the current status back is both pointless and
-      // wrong: a brand-new page is an `auto-draft`, which the server
-      // deliberately refuses as an input status - accepting it would let a
-      // saved page stay garbage-collectable. Omitting the field lets the
-      // server promote auto-draft to draft on its own.
-      const payload = {
-        title: titleRef.current,
-        html: sourceRef.current.html,
-        css: sourceRef.current.css,
-        js: sourceRef.current.js,
-      };
+      // A Snippet's REST route (PUT /snippets/{id}) only accepts html/css/js
+      // - no title, no status, matching its narrower GET shape above. There
+      // is currently no way to rename a snippet from this editor; the title
+      // field is read-only for one (see the input below) so that isn't a
+      // silent no-op.
+      let save;
 
-      if (nextStatus) {
-        payload.status = nextStatus;
+      if (objectType === 'snippet') {
+        save = saveSnippet(postId, {
+          html: sourceRef.current.html,
+          css: sourceRef.current.css,
+          js: sourceRef.current.js,
+        });
+      } else {
+        // `status` is sent only when the save is actually changing it (i.e.
+        // Publish). Echoing the current status back is both pointless and
+        // wrong: a brand-new page is an `auto-draft`, which the server
+        // deliberately refuses as an input status - accepting it would let a
+        // saved page stay garbage-collectable. Omitting the field lets the
+        // server promote auto-draft to draft on its own.
+        const payload = {
+          title: titleRef.current,
+          html: sourceRef.current.html,
+          css: sourceRef.current.css,
+          js: sourceRef.current.js,
+        };
+
+        if (nextStatus) {
+          payload.status = nextStatus;
+        }
+
+        save = savePage(postId, payload);
       }
 
-      savePage(postId, payload)
+      save
         .then((data) => {
-          setStatus(data.status);
+          setStatus(data.status || statusRef.current);
           setPermalink(data.permalink || '');
           setSaveState('saved');
           savedAtRef.current = Date.now();
@@ -303,7 +324,7 @@ function EditorApp({ postId, objectType }) {
           setSaveState('failed');
         });
     },
-    [postId]
+    [postId, objectType]
   );
 
   // Header/footer selection saves immediately on change, independent of
@@ -485,7 +506,12 @@ function EditorApp({ postId, objectType }) {
             value={title}
             placeholder="Untitled page"
             spellCheck="false"
+            readOnly={objectType === 'snippet'}
+            title={objectType === 'snippet' ? "Renaming a snippet isn't supported yet" : undefined}
             onChange={(event) => {
+              if (objectType === 'snippet') {
+                return;
+              }
               setTitle(event.target.value);
               setSaveState((prev) => (prev === 'saving' ? prev : 'unsaved'));
             }}
