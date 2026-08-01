@@ -55,14 +55,36 @@ const cssOptions = {
   logLevel: 'info',
 };
 
+// Separate from jsOptions on purpose: this file only ever uses window.wp.*
+// globals already loaded by the block editor screen (wp-element,
+// wp-plugins, wp-edit-post), never React directly, so it doesn't need the
+// externalGlobalsPlugin - and it ships to a screen the three-pane editor
+// bundle never loads on, so it stays its own small file rather than
+// growing editor.js for every visitor of the classic Page/Post screen too.
+const gutenbergPanelOptions = {
+  entryPoints: ['assets/src/gutenberg-panel.js'],
+  bundle: true,
+  outfile: 'assets/dist/gutenberg-panel.js',
+  format: 'iife',
+  target: ['es2020'],
+  sourcemap: true,
+  minify: !isWatch,
+  logLevel: 'info',
+};
+
 async function run() {
   if (isWatch) {
     const jsCtx = await esbuild.context(jsOptions);
     const cssCtx = await esbuild.context(cssOptions);
-    await Promise.all([jsCtx.watch(), cssCtx.watch()]);
+    const gutenbergCtx = await esbuild.context(gutenbergPanelOptions);
+    await Promise.all([jsCtx.watch(), cssCtx.watch(), gutenbergCtx.watch()]);
     console.log('Watching for changes...');
   } else {
-    await Promise.all([esbuild.build(jsOptions), esbuild.build(cssOptions)]);
+    await Promise.all([
+      esbuild.build(jsOptions),
+      esbuild.build(cssOptions),
+      esbuild.build(gutenbergPanelOptions),
+    ]);
   }
 }
 

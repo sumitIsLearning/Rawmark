@@ -10,6 +10,7 @@ namespace Rawmark;
 use Rawmark\Admin\Assets;
 use Rawmark\Admin\EditorLock;
 use Rawmark\Admin\EditorScreen;
+use Rawmark\Admin\GutenbergPanel;
 use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\HeaderFooterMetaBox;
 use Rawmark\Admin\PageModeToggle;
@@ -55,6 +56,7 @@ final class Plugin {
 			new SnippetActions(),
 			new SnippetsScreen(),
 			new HeaderFooterMetaBox(),
+			new GutenbergPanel(),
 		);
 
 		foreach ( $services as $service ) {
