@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPane } from './panes';
 import { createPreview } from './preview';
-import { getPage, savePage } from './api-client';
+import { getPage, savePage, createSnippet } from './api-client';
 import { Icon } from './icons';
 
 const PANES = [
@@ -88,7 +88,7 @@ function countLintIssues(html, css, js) {
   return bad + stack.length;
 }
 
-function EditorApp({ postId }) {
+function EditorApp({ postId, objectType }) {
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState('draft');
   const [source, setSource] = useState({ html: '', css: '', js: '' });
@@ -101,6 +101,8 @@ function EditorApp({ postId }) {
   const [savedAgo, setSavedAgo] = useState('');
   const [error, setError] = useState('');
   const [cursor, setCursor] = useState({ ln: 1, col: 1 });
+  const [snippetMsg, setSnippetMsg] = useState('');
+  const [snippetError, setSnippetError] = useState('');
 
   const paneRefs = useRef({});
   const paneInstances = useRef({});
@@ -280,6 +282,33 @@ function EditorApp({ postId }) {
     [postId]
   );
 
+  const doSaveAsSnippet = useCallback(() => {
+    if (saveState === 'unsaved') {
+      const proceed = window.confirm(
+        'This page has unsaved changes. The snippet will be created from the last saved version, not what you see now. Continue?'
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+
+    const name = window.prompt('Name this snippet:', titleRef.current || '');
+    if (!name) {
+      return;
+    }
+
+    setSnippetError('');
+    createSnippet(postId, name)
+      .then(() => {
+        setSnippetMsg(`Saved as snippet "${name}"`);
+        setTimeout(() => setSnippetMsg(''), 4000);
+      })
+      .catch((err) => {
+        setSnippetError(err.message);
+        setTimeout(() => setSnippetError(''), 6000);
+      });
+  }, [postId, saveState]);
+
   const cycleLayout = useCallback(() => {
     setLayout((prev) => LAYOUTS[(LAYOUTS.indexOf(prev) + 1) % LAYOUTS.length]);
   }, []);
@@ -396,6 +425,29 @@ function EditorApp({ postId }) {
             <span className="rawmark-editor__dot" style={{ background: publishState.dot }} />
             {publishState.label}
           </span>
+          {snippetMsg && (
+            <span className="rawmark-editor__statusbar-item" style={{ color: '#2f9e44' }}>
+              {snippetMsg}
+              {' · '}
+              <a href={window.rawmarkEditor && window.rawmarkEditor.snippetsUrl} target="_blank" rel="noreferrer">
+                View
+              </a>
+            </span>
+          )}
+          {snippetError && (
+            <span className="rawmark-editor__statusbar-item" style={{ color: '#d4453f' }}>
+              {snippetError}
+            </span>
+          )}
+          {objectType === 'page' && (
+            <button
+              type="button"
+              className="rawmark-editor__btn rawmark-editor__btn--ghost"
+              onClick={doSaveAsSnippet}
+            >
+              Save as Snippet
+            </button>
+          )}
           <button type="button" className="rawmark-editor__btn rawmark-editor__btn--ghost" onClick={() => doSave()}>
             Save draft
           </button>
@@ -557,5 +609,6 @@ const root = document.getElementById('rawmark-editor-root');
 
 if (root) {
   const postId = parseInt(root.dataset.postId, 10) || 0;
-  createRoot(root).render(<EditorApp postId={postId} />);
+  const objectType = root.dataset.objectType === 'snippet' ? 'snippet' : 'page';
+  createRoot(root).render(<EditorApp postId={postId} objectType={objectType} />);
 }
