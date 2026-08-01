@@ -1,0 +1,89 @@
+<?php
+use Rawmark\Frontend\SnippetComposer;
+use Rawmark\Storage\Source;
+
+class Test_Snippet_Composer extends WP_UnitTestCase {
+
+	private function make_snippet( string $html, string $css = '', string $js = '' ): int {
+		$id = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $id, $html, $css, $js, array() );
+		return $id;
+	}
+
+	public function test_a_single_marker_expands_to_the_snippets_html(): void {
+		$snippet = $this->make_snippet( '<nav>the nav</nav>' );
+		$page    = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => "<!-- rawmark:snippet id='" . $snippet . "' -->", 'css' => '', 'js' => '' )
+		);
+
+		$this->assertSame( '<nav>the nav</nav>', $result['html'] );
+	}
+
+	public function test_the_same_snippet_placed_three_times_expands_three_times_but_css_and_js_appear_once(): void {
+		$snippet = $this->make_snippet( '<span>x</span>', '.x{color:red}', 'console.log(1);' );
+		$page    = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$marker  = "<!-- rawmark:snippet id='" . $snippet . "' -->";
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => $marker . $marker . $marker, 'css' => '', 'js' => '' )
+		);
+
+		$this->assertSame( '<span>x</span><span>x</span><span>x</span>', $result['html'] );
+		$this->assertSame( 1, substr_count( $result['css'], '.x{color:red}' ) );
+		$this->assertSame( 1, substr_count( $result['js'], 'console.log(1);' ) );
+	}
+
+	public function test_a_marker_referencing_a_deleted_snippet_expands_to_nothing(): void {
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => "<!-- rawmark:snippet id='999999' -->", 'css' => '', 'js' => '' )
+		);
+
+		$this->assertSame( '', $result['html'] );
+	}
+
+	public function test_header_and_footer_wrap_the_pages_own_html(): void {
+		$header = $this->make_snippet( '<header>H</header>', '.h{}', 'h();' );
+		$footer = $this->make_snippet( '<footer>F</footer>', '.f{}', 'f();' );
+		$page   = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_post_meta( $page, '_rawmark_header_snippet', $header );
+		update_post_meta( $page, '_rawmark_footer_snippet', $footer );
+
+		$result = SnippetComposer::compose( $page, array( 'html' => '<main>M</main>', 'css' => '.m{}', 'js' => 'm();' ) );
+
+		$this->assertSame( '<header>H</header><main>M</main><footer>F</footer>', $result['html'] );
+		$this->assertStringContainsString( '.h{}', $result['css'] );
+		$this->assertStringContainsString( '.m{}', $result['css'] );
+		$this->assertStringContainsString( '.f{}', $result['css'] );
+		$this->assertStringContainsString( 'h();', $result['js'] );
+		$this->assertStringContainsString( 'm();', $result['js'] );
+		$this->assertStringContainsString( 'f();', $result['js'] );
+	}
+
+	public function test_no_header_or_footer_set_leaves_the_page_untouched(): void {
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose( $page, array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ) );
+
+		$this->assertSame( '<main>M</main>', $result['html'] );
+	}
+
+	// A regular Page's ID happening to numerically match a real post is not
+	// enough - the target of _rawmark_header_snippet must actually BE a
+	// rawmark_snippet post, or it's treated exactly like a deleted one.
+	public function test_a_header_reference_pointing_at_a_non_snippet_post_is_ignored(): void {
+		$not_a_snippet = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$page          = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_post_meta( $page, '_rawmark_header_snippet', $not_a_snippet );
+
+		$result = SnippetComposer::compose( $page, array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ) );
+
+		$this->assertSame( '<main>M</main>', $result['html'] );
+	}
+}

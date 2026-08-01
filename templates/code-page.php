@@ -8,6 +8,7 @@
  */
 
 use Rawmark\Frontend\Escaper;
+use Rawmark\Frontend\SnippetComposer;
 use Rawmark\Storage\Source;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,9 +26,11 @@ $settings = $source['settings'];
 $title       = '' !== $settings['seo_title'] ? $settings['seo_title'] : get_the_title( $post );
 $description = $settings['seo_description'];
 
-$html = $source['html'];
-$css  = Escaper::escape_style( $source['css'] );
-$js   = Escaper::escape_script( $source['js'] );
+$composed = SnippetComposer::compose( $post->ID, $source );
+
+$html = $composed['html'];
+$css  = Escaper::escape_style( $composed['css'] );
+$js   = Escaper::escape_script( $composed['js'] );
 
 $body_class = 'rawmark-page rawmark-page--' . sanitize_html_class( $post->post_name );
 ?><!DOCTYPE html>

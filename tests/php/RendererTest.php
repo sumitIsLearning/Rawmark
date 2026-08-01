@@ -198,6 +198,24 @@ class Test_Renderer extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'code-page', $permalink );
 	}
 
+	public function test_a_flagged_pages_render_actually_runs_through_the_composer(): void {
+		$snippet = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		\Rawmark\Storage\Source::save( $snippet, '<nav>real nav</nav>', '', '', array() );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		\Rawmark\Storage\PageFlag::enable( $id );
+		\Rawmark\Storage\Source::save( $id, "<!-- rawmark:snippet id='" . $snippet . "' -->", '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<nav>real nav</nav>', $output );
+	}
+
 	public function tear_down(): void {
 		// go_to() rebuilds these for most tests, but prime_singular_query()
 		// installs a query by hand and the front-page test rewrites two
