@@ -6,6 +6,7 @@
  */
 
 use Rawmark\Frontend\Escaper;
+use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\Source;
@@ -297,6 +298,50 @@ class Test_Renderer extends WP_UnitTestCase {
 			'theme-template.php',
 			apply_filters( 'template_include', 'theme-template.php' )
 		);
+	}
+
+	public function test_flagged_page_with_no_own_header_uses_the_global_header_template(): void {
+		$header = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $header, '<header>Global Header</header>', '', '', array() );
+		HeaderTemplate::set( $header );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save( $id, '<main>Body</main>', '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<header>Global Header</header><main>Body</main>', $output );
+	}
+
+	// The scope decision from the design doc: an unflagged Post rendered
+	// through the Post Template fallback must NOT pick up the global
+	// header, even when one is set - only a real flagged Code Page does.
+	public function test_post_template_rendered_post_does_not_use_the_global_header_template(): void {
+		$header = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $header, '<header>Global Header</header>', '', '', array() );
+		HeaderTemplate::set( $header );
+
+		$post_template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $post_template, '<article>PT body</article>', '', '', array() );
+		PostTemplate::set( $post_template );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'post', 'post_status' => 'publish' ) );
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'Global Header', $output );
+		$this->assertStringContainsString( 'PT body', $output );
 	}
 
 	public function tear_down(): void {

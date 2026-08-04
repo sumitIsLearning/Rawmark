@@ -44,7 +44,7 @@ if ( 'post' === $post->post_type ) {
 	$source['js']   = PostDataTags::resolve( $post->ID, $source['js'] );
 }
 
-$composed = SnippetComposer::compose( $post->ID, $source );
+$composed = SnippetComposer::compose( $post->ID, $source, PageFlag::is_enabled( $post->ID ) );
 
 $html = $composed['html'];
 $css  = Escaper::escape_style( $composed['css'] );
