@@ -35,6 +35,8 @@ final class SnippetActions implements Hookable {
 	public const ACTION_SET_FOOTER_TEMPLATE   = 'rawmark_snippet_set_footer_template';
 	public const ACTION_UNSET_FOOTER_TEMPLATE = 'rawmark_snippet_unset_footer_template';
 
+	public const ACTION_CREATE = 'rawmark_snippet_create';
+
 	private const MARKER_TEMPLATE = "/<!--\\s*rawmark:snippet\\s+id='%d'\\s*-->/";
 
 	public function register(): void {
@@ -47,6 +49,7 @@ final class SnippetActions implements Hookable {
 		add_action( 'admin_post_' . self::ACTION_UNSET_HEADER_TEMPLATE, array( $this, 'handle_unset_header_template' ) );
 		add_action( 'admin_post_' . self::ACTION_SET_FOOTER_TEMPLATE, array( $this, 'handle_set_footer_template' ) );
 		add_action( 'admin_post_' . self::ACTION_UNSET_FOOTER_TEMPLATE, array( $this, 'handle_unset_footer_template' ) );
+		add_action( 'admin_post_' . self::ACTION_CREATE, array( $this, 'handle_create' ) );
 	}
 
 	public static function link_url( int $snippet_id ): string {
@@ -171,6 +174,50 @@ final class SnippetActions implements Hookable {
 
 		wp_safe_redirect( SnippetsScreen::url() );
 		exit;
+	}
+
+	public function handle_create(): void {
+		check_admin_referer( self::ACTION_CREATE );
+
+		if ( ! current_user_can( Capabilities::CAP ) ) {
+			wp_die(
+				esc_html__( 'You do not have permission to do that.', 'rawmark' ),
+				'',
+				array( 'response' => 403 )
+			);
+		}
+
+		$id = self::create_snippet( isset( $_POST['name'] ) ? (string) wp_unslash( $_POST['name'] ) : '' );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . EditorScreen::PAGE_SLUG . '&post=' . $id ) );
+		exit;
+	}
+
+	/**
+	 * The actual creation logic, deliberately kept in its own exit-free
+	 * method rather than inlined into handle_create() - same reasoning as
+	 * unlink_and_bake() below: handle_create() ends in wp_safe_redirect()
+	 * + a bare `exit;`, which nothing in a test process can safely
+	 * survive, so tests call this method directly.
+	 *
+	 * A newly inserted post has no _rawmark_source meta yet, so
+	 * Source::get() already returns blank html/css/js for it - no
+	 * separate Source::save() call is needed to "initialize" a blank
+	 * snippet.
+	 */
+	public static function create_snippet( string $name ): int {
+		$name = sanitize_text_field( $name );
+		$name = '' !== $name ? $name : __( 'Untitled Snippet', 'rawmark' );
+
+		return wp_insert_post(
+			wp_slash(
+				array(
+					'post_type'   => Snippet::SLUG,
+					'post_title'  => $name,
+					'post_status' => 'publish',
+				)
+			)
+		);
 	}
 
 	/**

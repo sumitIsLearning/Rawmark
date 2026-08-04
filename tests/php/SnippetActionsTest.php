@@ -152,6 +152,48 @@ class Test_Snippet_Actions extends WP_UnitTestCase {
 		$this->assertSame( $other, (int) get_post_meta( $page, '_rawmark_footer_snippet', true ) );
 	}
 
+	public function test_create_snippet_creates_a_published_snippet_with_the_given_name(): void {
+		$id = SnippetActions::create_snippet( 'My New Snippet' );
+
+		$this->assertSame( Snippet::SLUG, get_post_type( $id ) );
+		$this->assertSame( 'publish', get_post_status( $id ) );
+		$this->assertSame( 'My New Snippet', get_post( $id )->post_title );
+	}
+
+	public function test_create_snippet_starts_with_blank_content(): void {
+		$id = SnippetActions::create_snippet( 'Blank One' );
+
+		$source = Source::get( $id );
+
+		$this->assertSame( '', $source['html'] );
+		$this->assertSame( '', $source['css'] );
+		$this->assertSame( '', $source['js'] );
+	}
+
+	public function test_create_snippet_falls_back_to_a_default_name_when_empty(): void {
+		$id = SnippetActions::create_snippet( '' );
+
+		$this->assertSame( 'Untitled Snippet', get_post( $id )->post_title );
+	}
+
+	public function test_create_snippet_sanitizes_the_name(): void {
+		$id = SnippetActions::create_snippet( '<script>alert(1)</script>My Name' );
+
+		$this->assertSame( 'My Name', get_post( $id )->post_title );
+	}
+
+	public function test_a_user_without_the_capability_cannot_create_a_snippet(): void {
+		$editor = self::factory()->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $editor );
+		( new SnippetActions() )->register();
+
+		$_POST['name']        = 'Should Not Exist';
+		$_REQUEST['_wpnonce'] = wp_create_nonce( SnippetActions::ACTION_CREATE );
+
+		$this->expectException( 'WPDieException' );
+		do_action( 'admin_post_' . SnippetActions::ACTION_CREATE );
+	}
+
 	public function test_a_user_without_the_capability_cannot_link(): void {
 		$editor = self::factory()->user->create( array( 'role' => 'editor' ) );
 		wp_set_current_user( $editor );
