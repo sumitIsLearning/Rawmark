@@ -85,7 +85,19 @@ function countLintIssues(html, css, js) {
     }
   }
 
-  return bad + stack.length;
+  bad += stack.length;
+
+  // An unclosed rawmark:post_loop is a real, silent content-corruption
+  // failure mode (see design doc §4) - the opening count must equal the
+  // closing count, or the inner "template" renders as literal page
+  // content instead of being consumed as a loop body.
+  const opens = (html.match(/<!--\s*rawmark:post_loop(?:\s|-)/g) || []).length;
+  const closes = (html.match(/<!--\s*\/rawmark:post_loop\s*-->/g) || []).length;
+  if (opens !== closes) {
+    bad += Math.abs(opens - closes);
+  }
+
+  return bad;
 }
 
 function EditorApp({ postId, objectType }) {
