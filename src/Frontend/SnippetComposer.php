@@ -9,6 +9,8 @@
 namespace Rawmark\Frontend;
 
 use Rawmark\PostType\Snippet;
+use Rawmark\Storage\FooterTemplate;
+use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\Source;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,7 +25,7 @@ final class SnippetComposer {
 	 * @param array{html: string, css: string, js: string} $source
 	 * @return array{html: string, css: string, js: string}
 	 */
-	public static function compose( int $page_id, array $source ): array {
+	public static function compose( int $page_id, array $source, bool $apply_site_defaults = false ): array {
 		$css = $source['css'];
 		$js  = $source['js'];
 
@@ -52,8 +54,18 @@ final class SnippetComposer {
 			$source['html']
 		);
 
-		$header = self::resolve( (int) get_post_meta( $page_id, '_rawmark_header_snippet', true ) );
-		$footer = self::resolve( (int) get_post_meta( $page_id, '_rawmark_footer_snippet', true ) );
+		$header_id = (int) get_post_meta( $page_id, '_rawmark_header_snippet', true );
+		if ( 0 === $header_id && $apply_site_defaults ) {
+			$header_id = HeaderTemplate::get_id();
+		}
+
+		$footer_id = (int) get_post_meta( $page_id, '_rawmark_footer_snippet', true );
+		if ( 0 === $footer_id && $apply_site_defaults ) {
+			$footer_id = FooterTemplate::get_id();
+		}
+
+		$header = self::resolve( $header_id );
+		$footer = self::resolve( $footer_id );
 
 		if ( null !== $header ) {
 			$html = $header['html'] . $html;

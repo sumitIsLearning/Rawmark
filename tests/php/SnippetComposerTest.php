@@ -1,5 +1,7 @@
 <?php
 use Rawmark\Frontend\SnippetComposer;
+use Rawmark\Storage\FooterTemplate;
+use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\Source;
 
 class Test_Snippet_Composer extends WP_UnitTestCase {
@@ -83,6 +85,79 @@ class Test_Snippet_Composer extends WP_UnitTestCase {
 		update_post_meta( $page, '_rawmark_header_snippet', $not_a_snippet );
 
 		$result = SnippetComposer::compose( $page, array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ) );
+
+		$this->assertSame( '<main>M</main>', $result['html'] );
+	}
+
+	public function test_global_header_template_used_when_page_has_no_own_header_and_defaults_are_on(): void {
+		$header = $this->make_snippet( '<header>Global H</header>' );
+		HeaderTemplate::set( $header );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ),
+			true
+		);
+
+		$this->assertSame( '<header>Global H</header><main>M</main>', $result['html'] );
+	}
+
+	public function test_global_footer_template_used_when_page_has_no_own_footer_and_defaults_are_on(): void {
+		$footer = $this->make_snippet( '<footer>Global F</footer>' );
+		FooterTemplate::set( $footer );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ),
+			true
+		);
+
+		$this->assertSame( '<main>M</main><footer>Global F</footer>', $result['html'] );
+	}
+
+	public function test_per_page_header_wins_over_the_global_template(): void {
+		$own    = $this->make_snippet( '<header>Own H</header>' );
+		$global = $this->make_snippet( '<header>Global H</header>' );
+		HeaderTemplate::set( $global );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_post_meta( $page, '_rawmark_header_snippet', $own );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ),
+			true
+		);
+
+		$this->assertSame( '<header>Own H</header><main>M</main>', $result['html'] );
+	}
+
+	public function test_global_template_ignored_when_site_defaults_flag_is_false(): void {
+		$header = $this->make_snippet( '<header>Global H</header>' );
+		HeaderTemplate::set( $header );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ),
+			false
+		);
+
+		$this->assertSame( '<main>M</main>', $result['html'] );
+	}
+
+	public function test_global_header_template_pointing_at_a_deleted_snippet_resolves_to_nothing(): void {
+		$header = $this->make_snippet( '<header>Gone</header>' );
+		HeaderTemplate::set( $header );
+		wp_delete_post( $header, true );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$result = SnippetComposer::compose(
+			$page,
+			array( 'html' => '<main>M</main>', 'css' => '', 'js' => '' ),
+			true
+		);
 
 		$this->assertSame( '<main>M</main>', $result['html'] );
 	}
