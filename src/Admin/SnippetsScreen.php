@@ -9,6 +9,8 @@ namespace Rawmark\Admin;
 
 use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\FooterTemplate;
+use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\SnippetUsage;
@@ -64,7 +66,9 @@ final class SnippetsScreen implements Hookable {
 				'order'          => 'ASC',
 			)
 		);
-		$template_id = PostTemplate::get_id();
+		$template_id        = PostTemplate::get_id();
+		$header_template_id = HeaderTemplate::get_id();
+		$footer_template_id = FooterTemplate::get_id();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Snippets', 'rawmark' ); ?></h1>
@@ -93,6 +97,12 @@ final class SnippetsScreen implements Hookable {
 							<?php echo esc_html( $snippet->post_title ); ?>
 							<?php if ( $snippet->ID === $template_id ) : ?>
 								<span class="dashicons dashicons-star-filled" title="<?php esc_attr_e( 'Post Template', 'rawmark' ); ?>"></span>
+							<?php endif; ?>
+							<?php if ( $snippet->ID === $header_template_id ) : ?>
+								<span class="dashicons dashicons-arrow-up-alt2" title="<?php esc_attr_e( 'Header Template', 'rawmark' ); ?>"></span>
+							<?php endif; ?>
+							<?php if ( $snippet->ID === $footer_template_id ) : ?>
+								<span class="dashicons dashicons-arrow-down-alt2" title="<?php esc_attr_e( 'Footer Template', 'rawmark' ); ?>"></span>
 							<?php endif; ?>
 						</td>
 						<td>
@@ -131,6 +141,18 @@ final class SnippetsScreen implements Hookable {
 								<a href="<?php echo esc_url( SnippetActions::unset_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Unset Template', 'rawmark' ); ?></a>
 							<?php else : ?>
 								<a href="<?php echo esc_url( SnippetActions::set_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Set as Post Template', 'rawmark' ); ?></a>
+							<?php endif; ?>
+							|
+							<?php if ( $snippet->ID === $header_template_id ) : ?>
+								<a href="<?php echo esc_url( SnippetActions::unset_header_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Unset Header Template', 'rawmark' ); ?></a>
+							<?php else : ?>
+								<a href="<?php echo esc_url( SnippetActions::set_header_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Set as Header Template', 'rawmark' ); ?></a>
+							<?php endif; ?>
+							|
+							<?php if ( $snippet->ID === $footer_template_id ) : ?>
+								<a href="<?php echo esc_url( SnippetActions::unset_footer_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Unset Footer Template', 'rawmark' ); ?></a>
+							<?php else : ?>
+								<a href="<?php echo esc_url( SnippetActions::set_footer_template_url( $snippet->ID ) ); ?>"><?php esc_html_e( 'Set as Footer Template', 'rawmark' ); ?></a>
 							<?php endif; ?>
 						</td>
 					</tr>
