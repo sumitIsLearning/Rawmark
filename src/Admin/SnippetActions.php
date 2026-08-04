@@ -10,6 +10,8 @@ namespace Rawmark\Admin;
 
 use Rawmark\PostType\Snippet;
 use Rawmark\Security\Capabilities;
+use Rawmark\Storage\FooterTemplate;
+use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\PostTemplate;
 use Rawmark\Storage\SnippetLink;
 use Rawmark\Storage\SnippetUsage;
@@ -28,6 +30,11 @@ final class SnippetActions implements Hookable {
 	public const ACTION_SET_TEMPLATE   = 'rawmark_snippet_set_template';
 	public const ACTION_UNSET_TEMPLATE = 'rawmark_snippet_unset_template';
 
+	public const ACTION_SET_HEADER_TEMPLATE   = 'rawmark_snippet_set_header_template';
+	public const ACTION_UNSET_HEADER_TEMPLATE = 'rawmark_snippet_unset_header_template';
+	public const ACTION_SET_FOOTER_TEMPLATE   = 'rawmark_snippet_set_footer_template';
+	public const ACTION_UNSET_FOOTER_TEMPLATE = 'rawmark_snippet_unset_footer_template';
+
 	private const MARKER_TEMPLATE = "/<!--\\s*rawmark:snippet\\s+id='%d'\\s*-->/";
 
 	public function register(): void {
@@ -36,6 +43,10 @@ final class SnippetActions implements Hookable {
 		add_action( 'admin_post_' . self::ACTION_DELETE, array( $this, 'handle_delete' ) );
 		add_action( 'admin_post_' . self::ACTION_SET_TEMPLATE, array( $this, 'handle_set_template' ) );
 		add_action( 'admin_post_' . self::ACTION_UNSET_TEMPLATE, array( $this, 'handle_unset_template' ) );
+		add_action( 'admin_post_' . self::ACTION_SET_HEADER_TEMPLATE, array( $this, 'handle_set_header_template' ) );
+		add_action( 'admin_post_' . self::ACTION_UNSET_HEADER_TEMPLATE, array( $this, 'handle_unset_header_template' ) );
+		add_action( 'admin_post_' . self::ACTION_SET_FOOTER_TEMPLATE, array( $this, 'handle_set_footer_template' ) );
+		add_action( 'admin_post_' . self::ACTION_UNSET_FOOTER_TEMPLATE, array( $this, 'handle_unset_footer_template' ) );
 	}
 
 	public static function link_url( int $snippet_id ): string {
@@ -56,6 +67,22 @@ final class SnippetActions implements Hookable {
 
 	public static function unset_template_url( int $snippet_id ): string {
 		return self::build_url( self::ACTION_UNSET_TEMPLATE, $snippet_id );
+	}
+
+	public static function set_header_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_SET_HEADER_TEMPLATE, $snippet_id );
+	}
+
+	public static function unset_header_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_UNSET_HEADER_TEMPLATE, $snippet_id );
+	}
+
+	public static function set_footer_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_SET_FOOTER_TEMPLATE, $snippet_id );
+	}
+
+	public static function unset_footer_template_url( int $snippet_id ): string {
+		return self::build_url( self::ACTION_UNSET_FOOTER_TEMPLATE, $snippet_id );
 	}
 
 	private static function build_url( string $action, int $snippet_id ): string {
@@ -105,6 +132,42 @@ final class SnippetActions implements Hookable {
 		$id = $this->authorize( self::ACTION_UNSET_TEMPLATE );
 
 		PostTemplate::clear();
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_set_header_template(): void {
+		$id = $this->authorize( self::ACTION_SET_HEADER_TEMPLATE );
+
+		HeaderTemplate::set( $id );
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_unset_header_template(): void {
+		$id = $this->authorize( self::ACTION_UNSET_HEADER_TEMPLATE );
+
+		HeaderTemplate::clear();
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_set_footer_template(): void {
+		$id = $this->authorize( self::ACTION_SET_FOOTER_TEMPLATE );
+
+		FooterTemplate::set( $id );
+
+		wp_safe_redirect( SnippetsScreen::url() );
+		exit;
+	}
+
+	public function handle_unset_footer_template(): void {
+		$id = $this->authorize( self::ACTION_UNSET_FOOTER_TEMPLATE );
+
+		FooterTemplate::clear();
 
 		wp_safe_redirect( SnippetsScreen::url() );
 		exit;
