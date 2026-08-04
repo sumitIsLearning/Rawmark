@@ -344,6 +344,69 @@ class Test_Renderer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'PT body', $output );
 	}
 
+	public function test_flagged_page_with_no_current_post_still_resolves_a_post_loop(): void {
+		self::factory()->post->create( array( 'post_title' => 'Looped Post', 'post_status' => 'publish' ) );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save(
+			$id,
+			"<!-- rawmark:post_loop count='1' --><!-- rawmark:post_title --><!-- /rawmark:post_loop -->",
+			'',
+			'',
+			array()
+		);
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Looped Post', $output );
+	}
+
+	// Pins the ordering decision from the design doc: loop resolution must
+	// consume its own tags before the single-post pass runs, or the
+	// single-post pass would stomp the loop's tags with the *page's own*
+	// post data first.
+	public function test_a_tag_outside_the_loop_resolves_to_the_pages_own_post_not_loop_data(): void {
+		self::factory()->post->create( array( 'post_title' => 'Looped Post', 'post_status' => 'publish' ) );
+
+		// The flagged Post below is itself a real, published post_type=post -
+		// a valid loop match. Backdating it keeps it out of the "latest 1"
+		// slot deterministically, so the assertion below can't pass by
+		// accident depending on insertion-order tie-breaking.
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'post',
+				'post_status' => 'publish',
+				'post_title'  => 'The Real Post',
+				'post_date'   => '2020-01-01 00:00:00',
+			)
+		);
+		PageFlag::enable( $id );
+		Source::save(
+			$id,
+			"<!-- rawmark:post_loop count='1' -->Loop: <!-- rawmark:post_title --><!-- /rawmark:post_loop -->" .
+			'Outside: <!-- rawmark:post_title -->',
+			'',
+			'',
+			array()
+		);
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Loop: Looped Post', $output );
+		$this->assertStringContainsString( 'Outside: The Real Post', $output );
+	}
+
 	public function tear_down(): void {
 		// go_to() rebuilds these for most tests, but prime_singular_query()
 		// installs a query by hand and the front-page test rewrites two

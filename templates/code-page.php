@@ -9,6 +9,7 @@
 
 use Rawmark\Frontend\Escaper;
 use Rawmark\Frontend\PostDataTags;
+use Rawmark\Frontend\PostLoopTags;
 use Rawmark\Frontend\SnippetComposer;
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
@@ -34,6 +35,12 @@ $settings = $source['settings'];
 
 $title       = '' !== $settings['seo_title'] ? $settings['seo_title'] : get_the_title( $post );
 $description = $settings['seo_description'];
+
+// Loop resolution runs first and unconditionally - a Page has no
+// "current post" of its own but can still contain a post_loop block, and
+// loop tags must be consumed here before the single-post pass below gets
+// a chance to stomp them with the page's own post data.
+$source['html'] = PostLoopTags::resolve( $source['html'] );
 
 // Merge tags resolve for any Post being rendered here - individually
 // flagged or via the template fallback - never for a Page, which has no
