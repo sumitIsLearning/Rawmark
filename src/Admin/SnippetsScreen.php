@@ -72,6 +72,18 @@ final class SnippetsScreen implements Hookable {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Snippets', 'rawmark' ); ?></h1>
+			<h2><?php esc_html_e( 'Add New Snippet', 'rawmark' ); ?></h2>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( SnippetActions::ACTION_CREATE ); ?>">
+				<?php wp_nonce_field( SnippetActions::ACTION_CREATE ); ?>
+				<input
+					type="text"
+					name="name"
+					placeholder="<?php esc_attr_e( 'Snippet name', 'rawmark' ); ?>"
+					required
+				>
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Create Snippet', 'rawmark' ); ?></button>
+			</form>
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>

@@ -1,4 +1,5 @@
 <?php
+use Rawmark\Admin\SnippetActions;
 use Rawmark\Admin\SnippetsScreen;
 use Rawmark\PostType\Snippet;
 use Rawmark\Storage\FooterTemplate;
@@ -147,6 +148,30 @@ class Test_Snippets_Screen extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'dashicons-star-filled', $html );
 		$this->assertStringContainsString( 'dashicons-arrow-up-alt2', $html );
 		$this->assertStringContainsString( 'dashicons-arrow-down-alt2', $html );
+	}
+
+	public function test_render_shows_the_create_snippet_form(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		ob_start();
+		( new SnippetsScreen() )->render();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'name="name"', $html );
+		$this->assertStringContainsString( 'value="' . SnippetActions::ACTION_CREATE . '"', $html );
+		$this->assertStringContainsString( '>' . 'Create Snippet' . '<', $html );
+	}
+
+	public function test_create_snippet_form_carries_a_nonce_field(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		ob_start();
+		( new SnippetsScreen() )->render();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( '_wpnonce', $html );
 	}
 
 	public function test_render_dies_for_a_user_without_the_capability(): void {
