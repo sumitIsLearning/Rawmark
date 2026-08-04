@@ -7,8 +7,6 @@
 
 namespace Rawmark\Storage;
 
-use Rawmark\PostType\Snippet;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -18,27 +16,24 @@ final class PostTemplate {
 	public const OPTION_KEY = 'rawmark_post_template_id';
 
 	public static function get_id(): int {
-		return (int) get_option( self::OPTION_KEY, 0 );
+		return TemplateOption::get_id( self::OPTION_KEY );
 	}
 
 	public static function set( int $snippet_id ): void {
-		update_option( self::OPTION_KEY, $snippet_id );
+		TemplateOption::set( self::OPTION_KEY, $snippet_id );
 	}
 
 	public static function clear(): void {
-		delete_option( self::OPTION_KEY );
+		TemplateOption::clear( self::OPTION_KEY );
 	}
 
 	/**
-	 * The single answer to "does a valid template exist right now?". A
-	 * deleted or wrong-type post at the stored ID counts as unset, the same
-	 * way SnippetComposer::resolve() treats a stale reference as absent -
-	 * this is what lets Router fail safe to the theme with no extra
+	 * The single answer to "does a valid template exist right now?" - see
+	 * TemplateOption::is_set() for the fail-safe this delegates to, the
+	 * same one that lets Router fail safe to the theme with no extra
 	 * guarding anywhere else.
 	 */
 	public static function is_set(): bool {
-		$id = self::get_id();
-
-		return $id > 0 && Snippet::SLUG === get_post_type( $id );
+		return TemplateOption::is_set( self::OPTION_KEY );
 	}
 }
