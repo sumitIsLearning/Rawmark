@@ -518,10 +518,12 @@ function EditorApp({ postId, objectType }) {
           />
         </div>
         <div className="rawmark-editor__topbar-right">
-          <span className="rawmark-editor__status-pill">
-            <span className="rawmark-editor__dot" style={{ background: publishState.dot }} />
-            {publishState.label}
-          </span>
+          {objectType === 'page' && (
+            <span className="rawmark-editor__status-pill">
+              <span className="rawmark-editor__dot" style={{ background: publishState.dot }} />
+              {publishState.label}
+            </span>
+          )}
           {snippetMsg && (
             <span className="rawmark-editor__statusbar-item" style={{ color: '#2f9e44' }}>
               {snippetMsg}
@@ -581,16 +583,25 @@ function EditorApp({ postId, objectType }) {
               </select>
             </>
           )}
-          <button type="button" className="rawmark-editor__btn rawmark-editor__btn--ghost" onClick={() => doSave()}>
-            Save draft
-          </button>
-          <button
-            type="button"
-            className="rawmark-editor__btn rawmark-editor__btn--primary"
-            onClick={() => doSave('publish')}
-          >
-            {status === 'publish' ? 'Update' : 'Publish'}
-          </button>
+          {objectType === 'page' && (
+            <>
+              <button type="button" className="rawmark-editor__btn rawmark-editor__btn--ghost" onClick={() => doSave()}>
+                Save draft
+              </button>
+              <button
+                type="button"
+                className="rawmark-editor__btn rawmark-editor__btn--primary"
+                onClick={() => doSave('publish')}
+              >
+                {status === 'publish' ? 'Update' : 'Publish'}
+              </button>
+            </>
+          )}
+          {objectType === 'snippet' && (
+            <button type="button" className="rawmark-editor__btn rawmark-editor__btn--primary" onClick={() => doSave()}>
+              Save
+            </button>
+          )}
         </div>
       </header>
 
