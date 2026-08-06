@@ -2,10 +2,9 @@
 
 ## Just landed on main
 
-Sixteen pieces merged and pushed to `origin/main` (now at `ae7fbad`, tagged
-`v0.1.0`). First nine unchanged from the last handoff; 10-16 are new since
-then. **Piece 16 is implemented and 199/199 PHP tests are green, but is not
-yet committed** — see "Not yet committed" below.
+Seventeen pieces merged and pushed to `origin/main` (now at `d0bf9c7`,
+tagged `v0.2.0`). First nine unchanged from the last handoff; 10-17 are new
+since then.
 
 1. **Linked snippets backend** — `rawmark_snippet` post type, `_rawmark_linked`
    flag, placement finder, render-time composer (marker expansion +
@@ -151,6 +150,18 @@ yet committed** — see "Not yet committed" below.
     a future feature. No existing "Settings" tab actually existed before
     this — the task assumed one; investigation found only the Snippets
     screen, so this is a new submenu, not a new section on an old one.
+17. **Fix: plugin deletion fataled on every attempt since v0.1.0.**
+    `uninstall.php` requires every class dependency by hand (the
+    autoloader never loads in that context) and was missing
+    `src/Storage/TemplateOption.php` — a dependency `PostTemplate::clear()`
+    picked up when the Header/Footer Template refactor (item 10) landed,
+    but this file was never updated for it. Every real deletion from
+    wp-admin fataled mid-script (`Class "Rawmark\Storage\TemplateOption"
+    not found`), which WordPress surfaces as "Deletion failed: There has
+    been a critical error on this website." Root cause confirmed against
+    a real production error log, not just reasoning about the code. One
+    added `require_once`, fixed. **Tagged and released as `v0.2.0`** along
+    with item 16 — see "Distribution" below.
 
 Design/plan docs (all local-only — see "docs/ is gitignored" below):
 - `docs/superpowers/specs/2026-07-31-linked-snippets-design.md`
@@ -185,16 +196,48 @@ Every worktree and feature branch used to build pieces 1-6 and 10-13
 Pieces 7-9 and 14-15 were small enough (or not code at all) to work
 directly against `main`, no branch — nothing left to clean up either way.
 
-## Not yet committed
+## Next ecom platform: SureCart, not just WooCommerce
 
-Piece 16 (WooCommerce Shop redirect setting) exists only in the working
-tree as of this handoff: `src/Storage/ShopRedirect.php`,
-`src/Frontend/ShopArchiveRedirect.php`, `src/Admin/SettingsScreen.php`,
-`tests/php/ShopRedirectTest.php`, `tests/php/ShopArchiveRedirectTest.php`,
-`tests/php/SettingsScreenTest.php` are all untracked; `src/Plugin.php` has
-an uncommitted diff wiring the two new services in. No branch, no commit —
-next session should commit (and branch first, per this project's usual
-pattern) before doing anything else with these files.
+The user is now building the actual store with **SureCart** (installed
+locally, v4.6.3), not WooCommerce alone. Investigated by reading the real
+installed plugin source, not just its docs (one doc claim turned out
+wrong against the real code - see below). Findings for the next session:
+
+- **Shop/product-list page is a real, editable WP Page by default**
+  (`Shop — Sample Page`), not a forced archive template the way
+  WooCommerce's Shop page is. `[sc_product_list]` is a genuine
+  `add_shortcode()` registration - no redirect-style workaround needed
+  for this part at all.
+- **Every product-detail piece is a real shortcode too** -
+  `sc_product_title`, `sc_product_price`, `sc_product_media`,
+  `sc_product_cart_button`, `sc_product_variant_choices`,
+  `sc_product_description`, plus `sc_product_page` (renders a whole
+  product page by ID). Confirmed in
+  `wp-content/plugins/surecart/app/src/WordPress/Shortcodes/ShortcodesServiceProvider.php`
+  - real `add_shortcode()` calls, rendered internally via `do_blocks()`,
+  not dependent on `the_content` or theme context. Rawmark's
+  `do_shortcode()`-only render pass (`templates/code-page.php:60`) handles
+  these fine, same mechanism that already makes WooCommerce shortcodes work.
+- **Doc inaccuracy caught by reading the real code:** SureCart's own docs
+  say the `id` attribute breaks in v3+, use `product_id` instead. The
+  actual installed code
+  (`ShortcodesService.php::registerBlockShortcodeByName()`, ~line 91)
+  accepts both and prefers `id` if both are given. Don't trust that doc
+  page.
+- **Individual product URLs still go through SureCart's own template
+  engine** - same class of problem as WooCommerce's `single-product.php`,
+  not yet verified against SureCart's actual routing code the way the
+  shortcode claims above were. The existing "Single Product mapping" gap
+  noted for WooCommerce (per-product Rawmark pages, not one global
+  setting) would need the same treatment for SureCart, scoped to SureCart
+  product IDs - not built, not scoped yet.
+- **Unverified, flagged not confirmed broken:** SureCart's shortcode
+  callback calls `wp_enqueue_global_styles()`; Rawmark's
+  `Router::dequeue_theme_assets()` strips the `global-styles` handle from
+  every Code Page by design. Likely harmless - SureCart's product widgets
+  are Stencil web components that mostly self-style - but needs an actual
+  visual check once a SureCart shortcode is live inside a Rawmark page,
+  not just static-code reasoning.
 
 ## Still needs a human: manual UI verification
 
@@ -224,16 +267,20 @@ this path.
    filter, confirm the right posts render in real DOM output; type an
    unclosed `post_loop` marker, confirm the editor's lint indicator flags
    it.
-6. **WooCommerce Shop redirect** — never clicked through live, and no
-   WooCommerce install exists in this dev environment at all (confirmed:
-   not in `composer.json`, no `WooCommerce` class anywhere in the repo).
-   On a real WooCommerce site: confirm `Rawmark → Settings` is invisible
-   with WooCommerce deactivated; confirm the section appears and the page
-   picker lists real Pages once active; pick a Page, save, visit the
-   default `/shop/` URL, confirm a real 301 to that Page's actual
-   permalink; rename the target Page's slug afterward and confirm the
-   redirect follows it (the whole point of storing a Page ID instead of a
-   URL).
+6. **WooCommerce Shop redirect** — never clicked through live. WooCommerce
+   *is* installed in this environment (`wp-content/plugins/woocommerce`),
+   unlike when this was first built (PHPUnit tests still stub `is_shop()`
+   and `WooCommerce`, since the test DB has no reason to activate it).
+   Confirm `Rawmark → Settings` is invisible with WooCommerce deactivated;
+   confirm the section appears and the page picker lists real Pages once
+   active; pick a Page, save, visit the default `/shop/` URL, confirm a
+   real 301 to that Page's actual permalink; rename the target Page's slug
+   afterward and confirm the redirect follows it (the whole point of
+   storing a Page ID instead of a URL).
+7. **Plugin deletion** — confirmed fixed against the real error log that
+   caused item 17 above, but never re-attempted live through wp-admin
+   after the fix. Deactivate, click Delete, confirm it actually succeeds
+   this time with no "critical error" notice.
 
 ## `docs/` and `_planning/` are both gitignored — this project's convention, not an accident
 
@@ -260,15 +307,17 @@ memory (`future_goal_snippet_docs_app.md`) — both say to come back here
 and to `_planning/IMPLEMENTATION-STATUS.md` for context before scoping
 it. Nothing to do here unless that work actually starts.
 
-## Distribution: v0.1.0 is on GitHub Releases now
+## Distribution: v0.2.0 is on GitHub Releases now
 
-Item 15 above set up the actual release mechanism:
-`github.com/sumitIsLearning/Rawmark/releases/tag/v0.1.0`, zip asset
-attached. Next version: bump `Version:` in `rawmark.php` and
-`RAWMARK_VERSION` in the same file, `git tag -a vX.Y.Z`, push the tag,
+`github.com/sumitIsLearning/Rawmark/releases/tag/v0.2.0` - zip and
+`SKILL.md` both attached as release assets (same two files
+`RAWMARK-GUIDE.html`'s two `.dl-btn` links point at). Process, same as
+v0.1.0's: bump `Version:` in `rawmark.php` and `RAWMARK_VERSION` in the
+same file, commit, `git tag -a vX.Y.Z`, push the tag,
 `git archive --format=zip --prefix=rawmark/ -o rawmark-vX.Y.Z.zip vX.Y.Z`,
-`gh release create vX.Y.Z <zip> --title vX.Y.Z --notes "..."`, then swap
-the download URL in `RAWMARK-GUIDE.html`'s `.dl-btn` `href`.
+`gh release create vX.Y.Z <zip> SKILL.md --title vX.Y.Z --notes "..."`,
+then swap both download URLs in `RAWMARK-GUIDE.html`'s two `.dl-btn`
+`href`s (not committed - it's untracked by design, see below).
 
 ## Environment gotchas (don't re-discover these)
 
