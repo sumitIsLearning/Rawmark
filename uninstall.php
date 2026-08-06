@@ -16,10 +16,13 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 // the uninstall context, so every dependency is required by hand. Capabilities
 // implements Hookable, and PHP resolves that interface at class-declaration
 // time, so it has to come first or this file fatals and the capability is
-// never actually removed.
+// never actually removed. PostTemplate::clear() delegates to TemplateOption
+// (see its own class docblock) - that has to be required too, or the fatal
+// just moves one line down instead of disappearing.
 require_once __DIR__ . '/src/Support/Hookable.php';
 require_once __DIR__ . '/src/Security/Capabilities.php';
 require_once __DIR__ . '/src/PostType/Snippet.php';
+require_once __DIR__ . '/src/Storage/TemplateOption.php';
 require_once __DIR__ . '/src/Storage/PostTemplate.php';
 
 Rawmark\Security\Capabilities::uninstall();
