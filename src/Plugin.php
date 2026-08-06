@@ -14,9 +14,11 @@ use Rawmark\Admin\GutenbergPanel;
 use Rawmark\Admin\PageListIntegration;
 use Rawmark\Admin\HeaderFooterMetaBox;
 use Rawmark\Admin\PageModeToggle;
+use Rawmark\Admin\SettingsScreen;
 use Rawmark\Admin\SnippetActions;
 use Rawmark\Admin\SnippetsScreen;
 use Rawmark\Frontend\Router;
+use Rawmark\Frontend\ShopArchiveRedirect;
 use Rawmark\Migration\Migrator;
 use Rawmark\PostType\Snippet;
 use Rawmark\Rest\PagesController;
@@ -55,8 +57,10 @@ final class Plugin {
 			new Snippet(),
 			new SnippetActions(),
 			new SnippetsScreen(),
+			new SettingsScreen(),
 			new HeaderFooterMetaBox(),
 			new GutenbergPanel(),
+			new ShopArchiveRedirect(),
 		);
 
 		foreach ( $services as $service ) {
