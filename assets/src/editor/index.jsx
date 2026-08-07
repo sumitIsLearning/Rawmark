@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPane } from './panes';
 import { createPreview } from './preview';
-import { getPage, savePage, createSnippet, listSnippets, getSnippet, saveSnippet } from './api-client';
+import { getPage, savePage, createSnippet, listSnippets, getSnippet, saveSnippet, renderPreview } from './api-client';
 import { Icon } from './icons';
 
 const PANES = [
@@ -119,6 +119,8 @@ function EditorApp({ postId, objectType }) {
   const [snippets, setSnippets] = useState([]);
   const [headerSnippetId, setHeaderSnippetId] = useState(0);
   const [footerSnippetId, setFooterSnippetId] = useState(0);
+  const [previewPostId, setPreviewPostId] = useState(0);
+  const [previewCandidates, setPreviewCandidates] = useState([]);
 
   const paneRefs = useRef({});
   const paneInstances = useRef({});
@@ -130,17 +132,42 @@ function EditorApp({ postId, objectType }) {
   const statusRef = useRef(status);
   const savedAtRef = useRef(0);
   const previewTimer = useRef(null);
+  const layoutRef = useRef(layout);
 
   activeRef.current = active;
   sourceRef.current = source;
   titleRef.current = title;
   statusRef.current = status;
+  layoutRef.current = layout;
 
-  const updatePreviewNow = useCallback((next) => {
-    if (previewInstance.current) {
-      previewInstance.current.update(next);
-    }
-  }, []);
+  const updatePreviewNow = useCallback(
+    (next) => {
+      // No point rendering server-side while nobody's looking at it - the
+      // Code-only tab hides the preview pane entirely.
+      if (layoutRef.current === 'code' || !previewInstance.current) {
+        return;
+      }
+      renderPreview({
+        html: next.html,
+        css: next.css,
+        js: next.js,
+        postId,
+        previewPostId: previewPostId || undefined,
+      })
+        .then((data) => {
+          if (previewInstance.current) {
+            previewInstance.current.update(data.srcdoc);
+          }
+        })
+        .catch(() => {
+          // Non-fatal: a broken preview render (e.g. a shortcode that
+          // errors) must not block editing or saving. The editor has no
+          // separate "preview failed" indicator today - the iframe just
+          // keeps showing its last successful render.
+        });
+    },
+    [postId, previewPostId]
+  );
 
   const schedulePreview = useCallback(
     (next) => {
@@ -172,6 +199,23 @@ function EditorApp({ postId, objectType }) {
       }
     };
   }, []);
+
+  // Picking a different "preview as" target must refresh immediately, not
+  // wait for the next keystroke.
+  useEffect(() => {
+    updatePreviewNow(sourceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewPostId]);
+
+  // updatePreviewNow() no-ops while the Code-only tab is active (nothing to
+  // render into), so switching back to Split/Preview needs its own trigger -
+  // otherwise the pane stays blank until the next keystroke.
+  useEffect(() => {
+    if (layout !== 'code') {
+      updatePreviewNow(sourceRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout]);
 
   // Mount each CodeMirror pane once, uncontrolled, all three kept mounted
   // (visibility toggled via CSS) so switching tabs never loses undo
@@ -228,6 +272,7 @@ function EditorApp({ postId, objectType }) {
         setPermalink(data.permalink || '');
         setHeaderSnippetId(data.headerSnippetId || 0);
         setFooterSnippetId(data.footerSnippetId || 0);
+        setPreviewPostId(data.previewPostId || 0);
         setSource(next);
         setSaveState('saved');
         savedAtRef.current = Date.now();
@@ -266,6 +311,32 @@ function EditorApp({ postId, objectType }) {
         // Non-fatal: the pickers just render empty. The rest of the editor
         // (save/publish/panes) must keep working even if this list fails.
       });
+  }, [objectType]);
+
+  // "Preview as" candidates - only a Snippet has no post of its own to
+  // preview against. Pulled straight from core WP's own REST API per
+  // eligible type (window.rawmarkEditor.previewTypes, localized by
+  // Assets::preview_types()) - no Rawmark-specific list endpoint needed.
+  useEffect(() => {
+    if (objectType !== 'snippet') {
+      return;
+    }
+    const config = window.rawmarkEditor || {};
+    const types = config.previewTypes || [];
+
+    Promise.all(
+      types.map(({ restBase, label }) =>
+        fetch(`${config.wpRestRoot}wp/v2/${restBase}?per_page=20&orderby=date&_fields=id,title`, {
+          credentials: 'same-origin',
+          headers: { 'X-WP-Nonce': config.nonce },
+        })
+          .then((res) => (res.ok ? res.json() : []))
+          .then((posts) =>
+            posts.map((post) => ({ id: post.id, title: post.title.rendered || `#${post.id}`, typeLabel: label }))
+          )
+          .catch(() => [])
+      )
+    ).then((lists) => setPreviewCandidates(lists.flat()));
   }, [objectType]);
 
   // "Saved Xm ago" ticks forward without a fresh save.
@@ -349,6 +420,14 @@ function EditorApp({ postId, objectType }) {
       savePage(postId, { [field]: snippetId })
         .then((data) => setter(data[field] || 0))
         .catch((err) => setError(err.message));
+    },
+    [postId]
+  );
+
+  const savePreviewPostId = useCallback(
+    (id) => {
+      setPreviewPostId(id);
+      saveSnippet(postId, { previewPostId: id }).catch((err) => setError(err.message));
     },
     [postId]
   );
@@ -610,9 +689,27 @@ function EditorApp({ postId, objectType }) {
             </>
           )}
           {objectType === 'snippet' && (
-            <button type="button" className="rawmark-editor__btn rawmark-editor__btn--primary" onClick={() => doSave()}>
-              Save
-            </button>
+            <>
+              {previewCandidates.length > 0 && (
+                <select
+                  className="rawmark-editor__select"
+                  title="Preview as"
+                  aria-label="Preview as"
+                  value={previewPostId || ''}
+                  onChange={(event) => savePreviewPostId(Number(event.target.value) || 0)}
+                >
+                  <option value="">Preview as: (none)</option>
+                  {previewCandidates.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      Preview as: {candidate.title} ({candidate.typeLabel})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button type="button" className="rawmark-editor__btn rawmark-editor__btn--primary" onClick={() => doSave()}>
+                Save
+              </button>
+            </>
           )}
         </div>
       </header>
