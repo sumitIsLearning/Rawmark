@@ -9,6 +9,7 @@ namespace Rawmark\Frontend;
 
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
+use Rawmark\Storage\Source;
 use Rawmark\Support\Hookable;
 use WP_Post;
 
@@ -51,6 +52,25 @@ final class Router implements Hookable {
 		$this->strip_theme_output();
 
 		return RAWMARK_DIR . '/templates/code-page.php';
+	}
+
+	/**
+	 * Same source_id resolution templates/code-page.php uses: a flagged
+	 * page's own settings, or the Post Template's when rendering an
+	 * unflagged Post through it. Runs on wp_enqueue_scripts, separately
+	 * from maybe_render() above, so it re-derives from the query rather
+	 * than being passed a value.
+	 */
+	private function current_page_enables_blocks(): bool {
+		$post = get_queried_object();
+
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		$source_id = PageFlag::is_enabled( $post->ID ) ? $post->ID : PostTemplate::get_id();
+
+		return Source::get( $source_id )['settings']['enable_blocks'];
 	}
 
 	private function is_rawmark_page( WP_Post $post ): bool {
@@ -126,6 +146,20 @@ final class Router implements Hookable {
 			'core-block-supports',
 			'wp-block-template-skip-link',
 		);
+
+		// A page with enable_blocks on can contain real core blocks
+		// (core/columns, core/group, core/buttons, ...) - stripping their
+		// structural CSS would break layout for exactly the pages that
+		// opted into block rendering. Everything else this function
+		// strips (emoji, skip-link, theme assets below) still applies
+		// unconditionally; only these four block-CSS handles are
+		// conditional.
+		if ( $this->current_page_enables_blocks() ) {
+			$core_presentation = array_diff(
+				$core_presentation,
+				array( 'wp-block-library', 'wp-block-library-theme', 'global-styles', 'core-block-supports' )
+			);
+		}
 
 		foreach ( $core_presentation as $handle ) {
 			wp_dequeue_style( $handle );

@@ -53,7 +53,21 @@ if ( 'post' === $post->post_type ) {
 
 $composed = SnippetComposer::compose( $post->ID, $source, PageFlag::is_enabled( $post->ID ) );
 
-$html = $composed['html'];
+// Shortcodes only - not the full the_content filter chain, which also
+// runs wpautop() and would mangle hand-authored HTML. This is what lets
+// WooCommerce shortcodes ([woocommerce_cart], [products], etc.) work
+// inside otherwise-static Rawmark markup.
+//
+// do_blocks() runs first, opt-in via settings['enable_blocks'] - most
+// Rawmark pages are hand-authored HTML with zero block comments, so this
+// stays off by default. Called directly (not through
+// apply_filters('the_content', ...)), so do_blocks()'s own
+// doing_filter('the_content') check is false and its wpautop-removal
+// side effect never fires - nothing here fights hand-authored markup.
+// Same order WordPress's own the_content chain uses: blocks resolve
+// first, then shortcodes run on the result.
+$html = $settings['enable_blocks'] ? do_blocks( $composed['html'] ) : $composed['html'];
+$html = do_shortcode( $html );
 $css  = Escaper::escape_style( $composed['css'] );
 $js   = Escaper::escape_script( $composed['js'] );
 

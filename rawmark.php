@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rawmark
  * Description: Build a page by writing raw HTML, CSS, and JS in a split-pane editor with a live preview. Publishes a clean standalone document with no theme wrapper.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Rawmark
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RAWMARK_VERSION', '0.2.0' );
+define( 'RAWMARK_VERSION', '0.3.0' );
 define( 'RAWMARK_FILE', __FILE__ );
 define( 'RAWMARK_DIR', __DIR__ );
 define( 'RAWMARK_URL', plugin_dir_url( __FILE__ ) );

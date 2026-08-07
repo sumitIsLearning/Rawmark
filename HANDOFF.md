@@ -2,9 +2,13 @@
 
 ## Just landed on main
 
-Seventeen pieces merged and pushed to `origin/main` (now at `d0bf9c7`,
-tagged `v0.2.0`). First nine unchanged from the last handoff; 10-17 are new
-since then.
+Eighteen pieces merged and pushed to `origin/main`, tagged `v0.3.0`
+(commit hash TBD - see "Distribution" below for the actual tag). First
+nine unchanged from the last handoff; 10-18 are new since then. **Item 18
+(Gutenberg block rendering, for SureCart Cart/Checkout) is implemented,
+unit-tested, and now committed/tagged/released, but still NOT verified
+live in a real browser** - see "In progress: still needs a live check"
+below, read that section first if picking this up.
 
 1. **Linked snippets backend** — `rawmark_snippet` post type, `_rawmark_linked`
    flag, placement finder, render-time composer (marker expansion +
@@ -162,6 +166,138 @@ since then.
     a real production error log, not just reasoning about the code. One
     added `require_once`, fixed. **Tagged and released as `v0.2.0`** along
     with item 16 — see "Distribution" below.
+18. **Gutenberg block rendering (opt-in) — implemented, committed, shipped
+    as `v0.3.0`, still NOT verified live.** SureCart's Cart and Checkout
+    blocks have no shortcode alternative (unlike Shop/Product) -
+    Rawmark's render path only ever called `do_shortcode()`, never
+    `do_blocks()`, so pasted Cart/Checkout block markup would render as
+    inert HTML comments. Full detail and exact status in "In progress:
+    still needs a live check" immediately below - read that section
+    before touching this, not just this summary.
+
+## In progress: still needs a live check - Gutenberg block rendering
+
+Committed and tagged as `v0.3.0` (`src/Frontend/Router.php`,
+`src/Storage/Source.php`, `templates/code-page.php`,
+`tests/php/RendererTest.php`, `tests/php/StorageTest.php` all touched).
+Implemented against a plan the user had already independently
+investigated and handed over as confirmed findings (see that session's
+conversation for the full reasoning trail - not saved as a file in this
+repo, checked: `rawmark-surecart-integration.md` does not exist here, it
+was a pointer to reasoning that lived elsewhere, not a real file to
+read). Shipped in this state deliberately, so it can be downloaded and
+tested against the real installed SureCart site rather than blocked
+waiting on a browser-automation tool that isn't available in this
+environment - see "Still needed - the actual live check, not done"
+further down.
+
+**What's actually done, mechanically verified:**
+1. `Source.php` - new `enable_blocks` boolean setting, same
+   `normalize_settings()` shape/pattern as `external_assets`, defaults
+   `false`.
+2. `templates/code-page.php` - `do_blocks()` now runs on the composed
+   HTML before `do_shortcode()`, gated on `settings['enable_blocks']`.
+   Called directly (not via `apply_filters('the_content', ...)`), so
+   `do_blocks()`'s own `doing_filter('the_content')` check stays false
+   and its wpautop-removal side effect never fires - confirmed by reading
+   `wp-includes/blocks.php:2527` directly in this WP core install
+   (7.0.2), not assumed.
+3. `Router.php` - `dequeue_theme_assets()` normally strips
+   `wp-block-library`/`wp-block-library-theme`/`global-styles`/
+   `core-block-supports` from every Code Page unconditionally. Now skips
+   stripping those four specific handles when the current page (or its
+   Post Template) has `enable_blocks` on - new private
+   `current_page_enables_blocks()` re-derives the same `source_id` logic
+   `code-page.php` uses. Nothing else this function strips changed - the
+   separate theme-asset-URI-matching loop further down is untouched and
+   still runs unconditionally regardless of this flag (confirmed to the
+   user directly when asked: this carve-out does not let the active
+   theme's own stylesheet load, only WP-core/theme.json-derived block
+   CSS).
+4. `StorageTest.php` / `RendererTest.php` - new tests, **204/204 green**
+   including these. One real snag surfaced and fixed *in the test code*,
+   not the feature: `wp_deregister_style()` (pre-existing in Router,
+   untouched by this change) has a process-lifetime side effect once any
+   test exercises the default "strip" path, the handle is gone from the
+   global registry for the rest of the PHPUnit run - later tests can't
+   naively check "is it still registered" against real WP-core state.
+   Fixed by having the "kept when enabled" test re-register the handle
+   itself under test control rather than trusting whatever the shared
+   process left behind. Worth remembering for any future test in this
+   suite that touches global `$wp_styles`/`$wp_scripts` state.
+
+**What's NOT done - this is the actual gap, not a formality:**
+
+No browser-automation tool is available in this environment (checked via
+`ToolSearch` this session - only Figma design tools came back, no
+Playwright/Chrome DevTools MCP). The task's acceptance test was explicit
+and mandatory: flag a real Page, turn `enable_blocks` on, paste **real**
+SureCart Cart block markup exported from the actual installed SureCart
+site (not hand-written block comments), and in a real browser confirm
+structural layout, add-to-cart, quantity update, item removal, and a full
+Checkout flow. None of that happened. The session was interrupted
+mid-attempt to pull real Cart block markup out of the live site's
+database (looking for the MySQL port via `sites.json`, the same technique
+the "Environment gotchas" section below already documents for the test
+DB) to stage the test page for a human to click through - that pull never
+completed.
+
+**Steps 1-3 done this session (2026-08-07), step 4 still needs a human:**
+
+1. **Real markup pulled from the live install**, not hand-written - no
+   `wp` CLI on `PATH`, so pulled via a direct `mysqli` connection using
+   `127.0.0.1:10005` (the `sites.json` port, same fix as the test-DB
+   gotcha below) against the real `local` database. Two real findings
+   from that query, worth knowing before testing:
+   - **There is no standalone SureCart "Cart" page.** SureCart's cart is
+     a slide-out drawer (`surecart/slide-out-cart` block), stored as
+     `wp_template_part` post ID 139, injected globally rather than routed
+     to its own URL. Pages titled "Cart"/"Checkout" (IDs 97/98,
+     `woocommerce_cart_page_id`/`woocommerce_checkout_page_id`) are
+     leftover **WooCommerce** pages using `[woocommerce_cart]` - a
+     different plugin, not SureCart, and not what this feature targets.
+   - The real SureCart checkout page is ID 135
+     (`surecart_checkout_page_id` option, slug `checkout-2`), content is
+     exactly `<!-- wp:surecart/checkout-form {"id":134} -->
+     <!-- /wp:surecart/checkout-form -->`.
+2. **Throwaway Page 140 created and staged**, flagged, `enable_blocks`
+   set true via `Source::save()` directly (bootstrapped WP from the CLI:
+   `DB_HOST` predefined as `127.0.0.1:10005` before `wp-load.php` so
+   wp-config's `localhost` define is ignored, same trick
+   `wp-tests-config.php` already uses; needed `-d memory_limit=1024M`,
+   the CLI SAPI's default 128M isn't enough to bootstrap WP with
+   WooCommerce + SureCart + Rank Math all active - this fataled silently
+   into `debug.log`, not stdout, until raised). URL:
+   `http://wordpress-plugin-lab.local/rawmark-surecart-block-test-throwaway/`.
+   HTML pane holds both the real checkout-form markup and the real
+   slide-out-cart markup back to back.
+3. Real markup pasted into that page - done as part of step 2.
+
+**Still needed - the actual live check, not done:**
+4. In an actual browser: open Page 140, confirm the checkout form renders
+   and functions. The slide-out cart is a drawer, not inline content -
+   confirm whatever normally triggers it (add an item from a real product
+   page first) still opens it correctly with this markup pasted directly
+   rather than coming from its usual template-part injection point;
+   confirm quantity update, item removal, and total recalculation; then
+   confirm the checkout-form block completes a real order.
+5. Only after step 4 passes live: promote item 18 out of "in progress" in
+   this file's "Just landed on main" list for real (it has NOT been
+   promoted yet - v0.3.0 below ships the code un-verified-live so it can
+   be tested by downloading and installing fresh, not because the live
+   check happened).
+
+No browser-automation tool has been available in any session so far
+(checked again this session via `ToolSearch` - still only `WebFetch` and
+a Figma page-capture tool, no Playwright/Chrome DevTools MCP), so step 4
+still needs a human. If a future session picks this up cold: the code is
+believed correct (matches an already-investigated plan, unit tests pass,
+one specific WP core behavior was verified by reading the actual source
+rather than assumed, and the test page now holds real exported markup
+rather than hand-written block comments), but "should work based on the
+mechanism" and "confirmed working in a real browser against the real
+installed SureCart site" are still different claims, and only the second
+one means this is actually done.
 
 Design/plan docs (all local-only — see "docs/ is gitignored" below):
 - `docs/superpowers/specs/2026-07-31-linked-snippets-design.md`
@@ -307,17 +443,22 @@ memory (`future_goal_snippet_docs_app.md`) — both say to come back here
 and to `_planning/IMPLEMENTATION-STATUS.md` for context before scoping
 it. Nothing to do here unless that work actually starts.
 
-## Distribution: v0.2.0 is on GitHub Releases now
+## Distribution: v0.3.0 is on GitHub Releases now
 
-`github.com/sumitIsLearning/Rawmark/releases/tag/v0.2.0` - zip and
+`github.com/sumitIsLearning/Rawmark/releases/tag/v0.3.0` - zip and
 `SKILL.md` both attached as release assets (same two files
-`RAWMARK-GUIDE.html`'s two `.dl-btn` links point at). Process, same as
-v0.1.0's: bump `Version:` in `rawmark.php` and `RAWMARK_VERSION` in the
-same file, commit, `git tag -a vX.Y.Z`, push the tag,
-`git archive --format=zip --prefix=rawmark/ -o rawmark-vX.Y.Z.zip vX.Y.Z`,
-`gh release create vX.Y.Z <zip> SKILL.md --title vX.Y.Z --notes "..."`,
-then swap both download URLs in `RAWMARK-GUIDE.html`'s two `.dl-btn`
-`href`s (not committed - it's untracked by design, see below).
+`RAWMARK-GUIDE.html`'s two `.dl-btn` links point at). Shipped specifically
+so item 18 (Gutenberg block rendering) could be downloaded and tested
+against the real installed SureCart site, since no browser-automation
+tool is available in this environment to verify it live directly - see
+item 18 above.
+
+Process, same as v0.1.0/v0.2.0's: bump `Version:` in `rawmark.php` and
+`RAWMARK_VERSION` in the same file, commit, `git tag -a vX.Y.Z`, push the
+tag, `git archive --format=zip --prefix=rawmark/ -o rawmark-vX.Y.Z.zip
+vX.Y.Z`, `gh release create vX.Y.Z <zip> SKILL.md --title vX.Y.Z --notes
+"..."`, then swap both download URLs in `RAWMARK-GUIDE.html`'s two
+`.dl-btn` `href`s (not committed - it's untracked by design, see below).
 
 ## Environment gotchas (don't re-discover these)
 

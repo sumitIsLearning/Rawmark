@@ -142,6 +142,7 @@ final class Source {
 			'use_wp_head'      => isset( $settings['use_wp_head'] ) ? (bool) $settings['use_wp_head'] : true,
 			'use_wp_footer'    => isset( $settings['use_wp_footer'] ) ? (bool) $settings['use_wp_footer'] : true,
 			'external_assets'  => isset( $settings['external_assets'] ) ? (bool) $settings['external_assets'] : false,
+			'enable_blocks'    => isset( $settings['enable_blocks'] ) ? (bool) $settings['enable_blocks'] : false,
 		);
 	}
 }

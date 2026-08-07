@@ -233,6 +233,31 @@ class Test_Renderer extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<nav>real nav</nav>', $output );
 	}
 
+	public function test_a_flagged_pages_render_expands_shortcodes(): void {
+		add_shortcode(
+			'rawmark_test_shortcode',
+			static function (): string {
+				return '<span>shortcode output</span>';
+			}
+		);
+
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save( $id, '<p>before</p>[rawmark_test_shortcode]<p>after</p>', '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		remove_shortcode( 'rawmark_test_shortcode' );
+
+		$this->assertStringContainsString( '<span>shortcode output</span>', $output );
+		$this->assertStringNotContainsString( '[rawmark_test_shortcode]', $output );
+	}
+
 	public function test_an_unflagged_post_renders_through_the_designated_template(): void {
 		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
 		Source::save( $template, '<!-- rawmark:post_title -->', '', '', array() );
@@ -405,6 +430,88 @@ class Test_Renderer extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Loop: Looped Post', $output );
 		$this->assertStringContainsString( 'Outside: The Real Post', $output );
+	}
+
+	// Fail-safe default: most Rawmark pages are hand-authored HTML with no
+	// block comments in them at all, so do_blocks() must stay off unless a
+	// page opts in.
+	public function test_block_markup_is_inert_by_default(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save( $id, "<!-- wp:paragraph -->\n<p>Hello Block</p>\n<!-- /wp:paragraph -->", '', '', array() );
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<!-- wp:paragraph -->', $output );
+	}
+
+	public function test_block_markup_renders_when_enable_blocks_is_on(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		Source::save(
+			$id,
+			"<!-- wp:paragraph -->\n<p>Hello Block</p>\n<!-- /wp:paragraph -->",
+			'',
+			'',
+			array( 'enable_blocks' => true )
+		);
+
+		$this->go_to( get_permalink( $id ) );
+		$template = apply_filters( 'template_include', 'theme-template.php' );
+
+		ob_start();
+		include $template;
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( '<!-- wp:paragraph -->', $output );
+		$this->assertStringContainsString( 'Hello Block', $output );
+	}
+
+	// The Router carve-out (#3): stripping wp-block-library/global-styles
+	// unconditionally would break structural blocks (core/columns,
+	// core/group, ...) the moment a page actually uses them.
+	//
+	// wp_deregister_style() (already in dequeue_theme_assets(), untouched
+	// by this change) has a real side effect that outlives a single test -
+	// every earlier test in this file renders a flagged page with
+	// enable_blocks off by default, so by the time this test runs,
+	// wp-block-library is already gone from the global registry for the
+	// rest of the PHPUnit process regardless of what this test does.
+	// Re-registering it under test control (rather than relying on
+	// whatever WP core's own bootstrap-time registration left behind)
+	// means this test verifies Router's own decision, not leftover state
+	// from tests that ran before it.
+	public function test_block_library_style_is_kept_when_enabled_and_stripped_when_not(): void {
+		wp_register_style( 'wp-block-library', false );
+		wp_enqueue_style( 'wp-block-library' );
+
+		$with_blocks = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $with_blocks );
+		Source::save( $with_blocks, '<p>Hi</p>', '', '', array( 'enable_blocks' => true ) );
+
+		$this->go_to( get_permalink( $with_blocks ) );
+		apply_filters( 'template_include', 'theme-template.php' );
+		do_action( 'wp_enqueue_scripts' );
+
+		$this->assertTrue( wp_style_is( 'wp-block-library', 'enqueued' ) );
+
+		wp_register_style( 'wp-block-library', false );
+		wp_enqueue_style( 'wp-block-library' );
+
+		$without_blocks = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $without_blocks );
+		Source::save( $without_blocks, '<p>Hi</p>', '', '', array() );
+
+		$this->go_to( get_permalink( $without_blocks ) );
+		apply_filters( 'template_include', 'theme-template.php' );
+		do_action( 'wp_enqueue_scripts' );
+
+		$this->assertFalse( wp_style_is( 'wp-block-library', 'enqueued' ) );
 	}
 
 	public function tear_down(): void {

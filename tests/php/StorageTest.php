@@ -61,4 +61,18 @@ class Test_Storage extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertSame( 'html', $result->get_error_data()['pane'] );
 	}
+
+	public function test_enable_blocks_defaults_to_false(): void {
+		Source::save( $this->page_id, '', '', '', array() );
+
+		wp_cache_flush();
+		$this->assertFalse( Source::get( $this->page_id )['settings']['enable_blocks'] );
+	}
+
+	public function test_enable_blocks_true_survives_the_round_trip(): void {
+		Source::save( $this->page_id, '', '', '', array( 'enable_blocks' => true ) );
+
+		wp_cache_flush();
+		$this->assertTrue( Source::get( $this->page_id )['settings']['enable_blocks'] );
+	}
 }
