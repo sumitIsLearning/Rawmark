@@ -9,6 +9,7 @@ namespace Rawmark\Frontend;
 
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
+use Rawmark\Storage\PostTemplateTypes;
 use Rawmark\Storage\Source;
 use Rawmark\Support\Hookable;
 use WP_Post;
@@ -78,10 +79,22 @@ final class Router implements Hookable {
 			return true;
 		}
 
-		// The Post Template fallback: an ordinary, unflagged Post renders
-		// through the designated template Snippet instead of the theme. The
-		// individual flag above always wins when both apply - checked first.
-		return is_singular( 'post' ) && PostTemplate::is_set();
+		// The Post Template fallback: an ordinary, unflagged post of an
+		// eligible type renders through the designated template Snippet
+		// instead of the theme. The individual flag above always wins when
+		// both apply - checked first.
+		$types = PostTemplateTypes::get();
+
+		// is_singular( array() ) does not mean "match nothing" - WP_Query
+		// treats an empty array as "no type restriction" and matches any
+		// singular request, which would make every unflagged post of every
+		// type fall through to the template the moment a site owner
+		// unchecks every box. Guard explicitly.
+		if ( array() === $types ) {
+			return false;
+		}
+
+		return is_singular( $types ) && PostTemplate::is_set();
 	}
 
 	/**

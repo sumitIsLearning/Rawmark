@@ -13,6 +13,7 @@ use Rawmark\Frontend\PostLoopTags;
 use Rawmark\Frontend\SnippetComposer;
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
+use Rawmark\Storage\PostTemplateTypes;
 use Rawmark\Storage\Source;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -42,10 +43,10 @@ $description = $settings['seo_description'];
 // a chance to stomp them with the page's own post data.
 $source['html'] = PostLoopTags::resolve( $source['html'] );
 
-// Merge tags resolve for any Post being rendered here - individually
-// flagged or via the template fallback - never for a Page, which has no
-// "current post" context to substitute.
-if ( 'post' === $post->post_type ) {
+// Merge tags resolve for any post of a Post-Template-eligible type
+// rendered here - individually flagged or via the template fallback -
+// never for a Page, which has no "current post" context to substitute.
+if ( PostTemplateTypes::is_eligible( $post->post_type ) ) {
 	$source['html'] = PostDataTags::resolve( $post->ID, $source['html'] );
 	$source['css']  = PostDataTags::resolve( $post->ID, $source['css'] );
 	$source['js']   = PostDataTags::resolve( $post->ID, $source['js'] );

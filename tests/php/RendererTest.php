@@ -9,6 +9,7 @@ use Rawmark\Frontend\Escaper;
 use Rawmark\Storage\HeaderTemplate;
 use Rawmark\Storage\PageFlag;
 use Rawmark\Storage\PostTemplate;
+use Rawmark\Storage\PostTemplateTypes;
 use Rawmark\Storage\Source;
 
 class Test_Renderer extends WP_UnitTestCase {
@@ -277,6 +278,80 @@ class Test_Renderer extends WP_UnitTestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'My Post', $output );
+	}
+
+	public function test_an_unflagged_custom_post_type_renders_through_the_template_when_whitelisted(): void {
+		register_post_type(
+			'rawmark_test_cpt',
+			array( 'public' => true, 'publicly_queryable' => true, 'label' => 'Test CPT' )
+		);
+		PostTemplateTypes::set( array( 'post', 'rawmark_test_cpt' ) );
+
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $template, '<!-- rawmark:post_title -->', '', '', array() );
+		PostTemplate::set( $template );
+
+		$id = self::factory()->post->create(
+			array( 'post_type' => 'rawmark_test_cpt', 'post_status' => 'publish', 'post_title' => 'My Product' )
+		);
+
+		$this->go_to( get_permalink( $id ) );
+		$template_path = apply_filters( 'template_include', 'theme-template.php' );
+
+		$this->assertStringContainsString( 'code-page.php', $template_path );
+
+		ob_start();
+		include $template_path;
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'My Product', $output );
+	}
+
+	// Default whitelist is ['post'] only (SureCart isn't installed in this
+	// test environment, so 'sc_product' never enters the default) - an
+	// arbitrary custom post type must NOT get Post Template treatment
+	// until a site owner explicitly checks it in Settings. Guards against
+	// the whitelist accidentally becoming permissive.
+	public function test_an_unflagged_custom_post_type_uses_the_theme_when_not_whitelisted(): void {
+		register_post_type(
+			'rawmark_test_cpt',
+			array( 'public' => true, 'publicly_queryable' => true, 'label' => 'Test CPT' )
+		);
+
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $template, '<p>template</p>', '', '', array() );
+		PostTemplate::set( $template );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'rawmark_test_cpt', 'post_status' => 'publish' ) );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			'theme-template.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
+	}
+
+	// is_singular( array() ) is not "match nothing" - WP_Query treats an
+	// empty array as no type restriction at all and matches any singular
+	// request. Router must guard this explicitly, or unchecking every box
+	// in Settings would make Post Template apply to every unflagged post
+	// of every type - the opposite of what emptying the whitelist means.
+	public function test_emptying_the_whitelist_falls_back_to_the_theme_even_for_post(): void {
+		PostTemplateTypes::set( array() );
+
+		$template = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $template, '<p>template</p>', '', '', array() );
+		PostTemplate::set( $template );
+
+		$id = self::factory()->post->create( array( 'post_type' => 'post', 'post_status' => 'publish' ) );
+
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			'theme-template.php',
+			apply_filters( 'template_include', 'theme-template.php' )
+		);
 	}
 
 	public function test_an_unflagged_post_uses_the_theme_when_no_template_is_set(): void {

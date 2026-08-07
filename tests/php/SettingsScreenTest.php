@@ -1,5 +1,6 @@
 <?php
 use Rawmark\Admin\SettingsScreen;
+use Rawmark\Storage\PostTemplateTypes;
 use Rawmark\Storage\ShopRedirect;
 
 /**
@@ -18,6 +19,7 @@ class Test_Settings_Screen extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		ShopRedirect::clear();
+		delete_option( PostTemplateTypes::OPTION_KEY );
 		parent::tear_down();
 	}
 
@@ -104,5 +106,81 @@ class Test_Settings_Screen extends WP_UnitTestCase {
 
 		$this->expectException( 'WPDieException' );
 		do_action( 'admin_post_' . SettingsScreen::ACTION_SAVE_SHOP_REDIRECT );
+	}
+
+	public function test_render_always_shows_the_post_template_section(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		ob_start();
+		( new SettingsScreen() )->render();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'Post Template', $html );
+		$this->assertStringContainsString( 'rawmark_post_template_types[]', $html );
+		$this->assertStringContainsString( SettingsScreen::ACTION_SAVE_POST_TEMPLATE_TYPES, $html );
+		// 'post' is always a selectable checkbox, whether or not any
+		// optional integration is installed.
+		$this->assertStringContainsString( 'value="post"', $html );
+	}
+
+	public function test_render_warns_about_the_shared_template_only_when_multiple_types_are_checked(): void {
+		register_post_type( 'rawmark_test_cpt', array( 'public' => true ) );
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		ob_start();
+		( new SettingsScreen() )->render();
+		$single_type_html = ob_get_clean();
+
+		PostTemplateTypes::set( array( 'post', 'rawmark_test_cpt' ) );
+
+		ob_start();
+		( new SettingsScreen() )->render();
+		$multi_type_html = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'shared across every type', $single_type_html );
+		$this->assertStringContainsString( 'shared across every type', $multi_type_html );
+	}
+
+	public function test_render_lists_sc_product_once_it_is_registered(): void {
+		register_post_type( 'sc_product', array( 'public' => true, 'label' => 'Products' ) );
+
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+
+		ob_start();
+		( new SettingsScreen() )->render();
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'value="sc_product"', $html );
+	}
+
+	public function test_save_post_template_types_stores_a_valid_selection(): void {
+		register_post_type( 'rawmark_test_cpt', array( 'public' => true ) );
+
+		SettingsScreen::save_post_template_types( array( 'post', 'rawmark_test_cpt' ) );
+
+		$this->assertSame( array( 'post', 'rawmark_test_cpt' ), PostTemplateTypes::get() );
+	}
+
+	// Fail-safe against a tampered request naming something that isn't a
+	// real, selectable post type - same shape as the Shop redirect's
+	// non-Page guard above.
+	public function test_save_post_template_types_ignores_a_type_that_is_not_selectable(): void {
+		SettingsScreen::save_post_template_types( array( 'post', 'not_a_real_post_type' ) );
+
+		$this->assertSame( array( 'post' ), PostTemplateTypes::get() );
+	}
+
+	public function test_a_user_without_the_capability_cannot_save_post_template_types(): void {
+		$editor = self::factory()->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $editor );
+		( new SettingsScreen() )->register();
+
+		$_REQUEST['_wpnonce'] = wp_create_nonce( SettingsScreen::ACTION_SAVE_POST_TEMPLATE_TYPES );
+
+		$this->expectException( 'WPDieException' );
+		do_action( 'admin_post_' . SettingsScreen::ACTION_SAVE_POST_TEMPLATE_TYPES );
 	}
 }
