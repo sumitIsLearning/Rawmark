@@ -2,9 +2,9 @@
 
 ## Just landed on main
 
-Eighteen pieces merged and pushed to `origin/main`, tagged `v0.3.0`
-(commit hash TBD - see "Distribution" below for the actual tag). First
-nine unchanged from the last handoff; 10-18 are new since then. **Item 18
+Eighteen pieces merged and pushed to `origin/main` (now at `2bca8a2`,
+tagged `v0.3.0`). First nine unchanged from the last handoff; 10-18 are
+new since then. **Item 18
 (Gutenberg block rendering, for SureCart Cart/Checkout) is implemented,
 unit-tested, and now committed/tagged/released, but still NOT verified
 live in a real browser** - see "In progress: still needs a live check"
