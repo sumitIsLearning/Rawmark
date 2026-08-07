@@ -123,11 +123,12 @@ final class SnippetsController {
 
 		return new WP_REST_Response(
 			array(
-				'id'    => $id,
-				'title' => $post->post_title,
-				'html'  => $source['html'],
-				'css'   => $source['css'],
-				'js'    => $source['js'],
+				'id'            => $id,
+				'title'         => $post->post_title,
+				'html'          => $source['html'],
+				'css'           => $source['css'],
+				'js'            => $source['js'],
+				'previewPostId' => (int) get_post_meta( $id, '_rawmark_preview_post_id', true ),
 			),
 			200
 		);
@@ -137,7 +138,18 @@ final class SnippetsController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_item( WP_REST_Request $request ) {
-		$id      = (int) $request->get_param( 'id' );
+		$id = (int) $request->get_param( 'id' );
+
+		if ( $request->has_param( 'previewPostId' ) ) {
+			$preview_post_id = (int) $request->get_param( 'previewPostId' );
+
+			if ( $preview_post_id > 0 && get_post( $preview_post_id ) ) {
+				update_post_meta( $id, '_rawmark_preview_post_id', $preview_post_id );
+			} else {
+				delete_post_meta( $id, '_rawmark_preview_post_id' );
+			}
+		}
+
 		$current = Source::get( $id );
 		$html    = $request->has_param( 'html' ) ? (string) $request->get_param( 'html' ) : $current['html'];
 		$css     = $request->has_param( 'css' ) ? (string) $request->get_param( 'css' ) : $current['css'];
@@ -151,10 +163,11 @@ final class SnippetsController {
 
 		return new WP_REST_Response(
 			array(
-				'id'   => $id,
-				'html' => $saved['html'],
-				'css'  => $saved['css'],
-				'js'   => $saved['js'],
+				'id'            => $id,
+				'html'          => $saved['html'],
+				'css'           => $saved['css'],
+				'js'            => $saved['js'],
+				'previewPostId' => (int) get_post_meta( $id, '_rawmark_preview_post_id', true ),
 			),
 			200
 		);

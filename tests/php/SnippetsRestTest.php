@@ -79,6 +79,52 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$this->assertSame( '<p>x</p>', $response->get_data()['html'] );
 	}
 
+	public function test_get_item_includes_preview_post_id(): void {
+		$this->admin();
+		$id   = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		$post = self::factory()->post->create( array( 'post_type' => 'post' ) );
+		update_post_meta( $id, '_rawmark_preview_post_id', $post );
+
+		$response = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/rawmark/v1/snippets/' . $id ) );
+
+		$this->assertSame( $post, $response->get_data()['previewPostId'] );
+	}
+
+	public function test_update_item_sets_preview_post_id(): void {
+		$this->admin();
+		$id   = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		$post = self::factory()->post->create( array( 'post_type' => 'post' ) );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'previewPostId' => $post ) );
+		rest_get_server()->dispatch( $request );
+
+		$this->assertSame( (string) $post, get_post_meta( $id, '_rawmark_preview_post_id', true ) );
+	}
+
+	public function test_update_item_zero_clears_preview_post_id(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		update_post_meta( $id, '_rawmark_preview_post_id', 5 );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'previewPostId' => 0 ) );
+		rest_get_server()->dispatch( $request );
+
+		$this->assertSame( '', get_post_meta( $id, '_rawmark_preview_post_id', true ) );
+	}
+
+	public function test_update_item_ignores_a_preview_post_id_pointing_at_nothing(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'previewPostId' => 999999 ) );
+		rest_get_server()->dispatch( $request );
+
+		$this->assertSame( '', get_post_meta( $id, '_rawmark_preview_post_id', true ) );
+	}
+
 	public function test_get_item_404s_for_a_non_snippet_id(): void {
 		$this->admin();
 		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );

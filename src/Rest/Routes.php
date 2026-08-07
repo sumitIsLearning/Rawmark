@@ -127,6 +127,11 @@ final class Routes implements Hookable {
 								return is_string( $value );
 							},
 						),
+						'previewPostId' => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_numeric( $value ) && (int) $value >= 0;
+							},
+						),
 					),
 				),
 			)
