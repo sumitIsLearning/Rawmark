@@ -73,6 +73,18 @@ final class PreviewController {
 			);
 		}
 
+		// Prime the query BEFORE anything renders, not just before
+		// wp_head()/wp_footer() (its original job). render_block() seeds
+		// every top-level block's postId/postType context from the global
+		// $post, and dynamic blocks that resolve "the current product"
+		// themselves - SureCart's product-page does
+		// 'post__in' => [ $attributes['product_post_id'] ?? get_the_ID() ]
+		// and sc_get_product() reads the same global - come back empty when
+		// it is null. A REST request has no front-end query of its own, so
+		// without this the do_blocks() pass below renders those blocks as
+		// empty strings and the preview iframe shows a blank page.
+		$this->prime_query_for( $post );
+
 		$settings = Source::get( $post_id )['settings'];
 
 		$html = PostLoopTags::resolve( (string) $request->get_param( 'html' ) );
@@ -113,16 +125,19 @@ final class PreviewController {
 
 	/**
 	 * A REST request never runs WordPress's normal front-end query
-	 * resolution - is_singular()/conditional tags a plugin's own
-	 * wp_enqueue_scripts hook checks (SureCart's product asset enqueuing,
-	 * for one) default to false here, so a bare wp_head()/wp_footer() call
-	 * would silently emit no plugin-specific output at all. Priming a real
+	 * resolution, so two things blocks and plugins rely on are missing
+	 * here: the global $post (render_block() seeds postId/postType block
+	 * context from it; SureCart's get_the_ID()/sc_get_product() product
+	 * resolution reads it directly), and is_singular()-style conditional
+	 * tags that a plugin's own wp_enqueue_scripts hook checks (SureCart's
+	 * product asset enqueuing, for one) default to false. Priming a real
 	 * query against the resolved post's own permalink first - the same
-	 * technique WP_UnitTestCase::go_to() uses - makes those conditional
-	 * tags true, so wp_head()/wp_footer() behave exactly as they would on
-	 * a real visit to that post. Safe to mutate $wp_query/$wp_the_query
-	 * here: nothing later in a REST request's lifecycle depends on the
-	 * query this endpoint was dispatched through.
+	 * technique WP_UnitTestCase::go_to() uses - restores both, so
+	 * do_blocks(), wp_head(), and wp_footer() behave exactly as they
+	 * would on a real visit to that post. Safe to mutate
+	 * $wp_query/$wp_the_query here: nothing later in a REST request's
+	 * lifecycle depends on the query this endpoint was dispatched
+	 * through.
 	 */
 	private function prime_query_for( WP_Post $post ): void {
 		global $wp, $wp_query, $wp_the_query, $wp_rewrite;
@@ -156,11 +171,12 @@ final class PreviewController {
 	/**
 	 * Same document shape templates/code-page.php prints, built as a
 	 * string instead of echoed - a REST response needs the whole document
-	 * as one JSON-serializable value, not direct HTTP output.
+	 * as one JSON-serializable value, not direct HTTP output. The query
+	 * prime this relies on (wp_head()/wp_footer() conditional tags,
+	 * global $post) already happened in render_preview(), before the
+	 * do_blocks() pass - see the comment there for why the order matters.
 	 */
 	private function build_document( WP_Post $post, string $html, string $css, string $js, array $settings ): string {
-		$this->prime_query_for( $post );
-
 		$title       = '' !== $settings['seo_title'] ? $settings['seo_title'] : get_the_title( $post );
 		$description = $settings['seo_description'];
 		$body_class  = 'rawmark-page rawmark-page--' . sanitize_html_class( $post->post_name );

@@ -63,6 +63,53 @@ class Test_Preview_Controller extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'The Real Post', $response->get_data()['srcdoc'] );
 	}
 
+	/**
+	 * Regression: do_blocks() must run with the global query already
+	 * primed for the preview post. render_block() seeds every top-level
+	 * block's postId/postType context from the global $post, and dynamic
+	 * blocks that resolve "the current item" themselves (SureCart's
+	 * product-page reads get_the_ID() for its post__in query) render
+	 * empty when that global is still the REST request's null. The prime
+	 * used to happen only inside build_document() - after do_blocks() -
+	 * which is exactly the blank-preview bug this guards.
+	 */
+	public function test_do_blocks_runs_with_the_preview_post_as_the_global_post(): void {
+		$this->admin();
+		register_block_type(
+			'rawmark/test-current-post',
+			array(
+				'render_callback' => static function () {
+					return '<span>current-post-' . (int) get_the_ID() . '</span>';
+				},
+			)
+		);
+
+		$snippet = self::factory()->post->create( array( 'post_type' => 'rawmark_snippet' ) );
+		Source::save( $snippet, '', '', '', array( 'enable_blocks' => true ) );
+
+		$real_post = self::factory()->post->create(
+			array(
+				'post_type'   => 'post',
+				'post_status' => 'publish',
+			)
+		);
+
+		$response = $this->dispatch_preview(
+			array(
+				'postId'        => $snippet,
+				'previewPostId' => $real_post,
+				'html'          => '<!-- wp:rawmark/test-current-post /-->',
+				'css'           => '',
+				'js'            => '',
+			)
+		);
+
+		unregister_block_type( 'rawmark/test-current-post' );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString( '<span>current-post-' . $real_post . '</span>', $response->get_data()['srcdoc'] );
+	}
+
 	public function test_does_not_resolve_merge_tags_for_a_non_eligible_post_type(): void {
 		$this->admin();
 		PostTemplateTypes::set( array() );
