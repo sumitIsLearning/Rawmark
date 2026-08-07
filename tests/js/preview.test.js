@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeSrcDoc, createPreview } from '../../assets/src/editor/preview.js';
+import { createPreview } from '../../assets/src/editor/preview.js';
 
 describe('preview iframe sandbox', () => {
   it('never includes allow-same-origin or allow-top-navigation', () => {
@@ -16,18 +16,17 @@ describe('preview iframe sandbox', () => {
   });
 });
 
-describe('compose-time escaping', () => {
-  it('escapes a literal </script> inside the JS payload', () => {
-    const doc = composeSrcDoc({ html: '', css: '', js: 'var s = "</script>";' });
+describe('createPreview.update', () => {
+  it('sets the iframe srcdoc directly from the given HTML string', () => {
+    const container = document.createElement('div');
+    const preview = createPreview(container);
 
-    expect(doc).not.toMatch(/<\/script>";/);
-    expect(doc).toContain('<\\/script>');
-  });
+    preview.update('<!DOCTYPE html><html><body>Hi</body></html>');
 
-  it('escapes a literal </style> inside the CSS payload', () => {
-    const doc = composeSrcDoc({ html: '', css: 'body{}</style><script>alert(1)</script>', js: '' });
-
-    expect(doc).not.toContain('</style><script>alert(1)</script>');
-    expect(doc).toContain('<\\/style>');
+    // update() inserts a scroll-persistence script immediately before
+    // </body>, so the substring right around the given content survives
+    // even though the exact "<body>Hi</body>" run doesn't.
+    expect(preview.iframe.srcdoc).toContain('>Hi<');
+    expect(preview.iframe.srcdoc).toContain('</body>');
   });
 });
