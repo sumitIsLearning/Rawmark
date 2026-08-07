@@ -128,6 +128,7 @@ final class SnippetsController {
 				'html'          => $source['html'],
 				'css'           => $source['css'],
 				'js'            => $source['js'],
+				'settings'      => $source['settings'],
 				'previewPostId' => (int) get_post_meta( $id, '_rawmark_preview_post_id', true ),
 			),
 			200
@@ -150,12 +151,17 @@ final class SnippetsController {
 			}
 		}
 
-		$current = Source::get( $id );
-		$html    = $request->has_param( 'html' ) ? (string) $request->get_param( 'html' ) : $current['html'];
-		$css     = $request->has_param( 'css' ) ? (string) $request->get_param( 'css' ) : $current['css'];
-		$js      = $request->has_param( 'js' ) ? (string) $request->get_param( 'js' ) : $current['js'];
+		$current  = Source::get( $id );
+		$html     = $request->has_param( 'html' ) ? (string) $request->get_param( 'html' ) : $current['html'];
+		$css      = $request->has_param( 'css' ) ? (string) $request->get_param( 'css' ) : $current['css'];
+		$js       = $request->has_param( 'js' ) ? (string) $request->get_param( 'js' ) : $current['js'];
+		$settings = $current['settings'];
 
-		$saved = Source::save( $id, $html, $css, $js, $current['settings'] );
+		if ( $request->has_param( 'settings' ) ) {
+			$settings = Source::merge_writable_settings( $settings, (array) $request->get_param( 'settings' ) );
+		}
+
+		$saved = Source::save( $id, $html, $css, $js, $settings );
 
 		if ( is_wp_error( $saved ) ) {
 			return $saved;
@@ -167,6 +173,7 @@ final class SnippetsController {
 				'html'          => $saved['html'],
 				'css'           => $saved['css'],
 				'js'            => $saved['js'],
+				'settings'      => $saved['settings'],
 				'previewPostId' => (int) get_post_meta( $id, '_rawmark_preview_post_id', true ),
 			),
 			200

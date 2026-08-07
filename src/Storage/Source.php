@@ -132,6 +132,28 @@ final class Source {
 	}
 
 	/**
+	 * Merges a REST-supplied settings payload into the stored settings.
+	 *
+	 * Only `enable_blocks` is writable over REST. Every other key
+	 * (`seo_title`, `seo_description`, `use_wp_head`, `use_wp_footer`,
+	 * `external_assets`) exists in the data model but has no editor UI, so
+	 * a request naming one must not be able to change it - widening the
+	 * write surface without a UI for it buys nothing and would let a
+	 * hand-crafted request rewrite a page's SEO or disable wp_head().
+	 *
+	 * @param array<string, mixed> $current  Stored settings.
+	 * @param array<string, mixed> $incoming Client-supplied settings.
+	 * @return array<string, mixed>
+	 */
+	public static function merge_writable_settings( array $current, array $incoming ): array {
+		if ( array_key_exists( 'enable_blocks', $incoming ) ) {
+			$current['enable_blocks'] = (bool) $incoming['enable_blocks'];
+		}
+
+		return $current;
+	}
+
+	/**
 	 * @param array<string, mixed> $settings
 	 * @return array<string, mixed>
 	 */

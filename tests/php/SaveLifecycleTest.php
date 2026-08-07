@@ -152,4 +152,35 @@ class Test_Save_Lifecycle extends WP_UnitTestCase {
 		// Accepting it would leave the page garbage-collectable.
 		$this->assertSame( 400, $response->get_status() );
 	}
+
+	// The "Render blocks" checkbox posts settings on its own, with no
+	// html/css/js alongside it - the same standalone-field shape the
+	// header/footer pickers already use.
+	public function test_settings_only_save_sets_enable_blocks_and_keeps_content(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		\Rawmark\Storage\Source::save( $id, '<p>keep me</p>', '.a{}', 'f();', array() );
+
+		$response = $this->client_save( $id, array( 'settings' => array( 'enable_blocks' => true ) ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		wp_cache_flush();
+		$stored = \Rawmark\Storage\Source::get( $id );
+		$this->assertTrue( $stored['settings']['enable_blocks'] );
+		$this->assertSame( '<p>keep me</p>', $stored['html'] );
+		$this->assertSame( '.a{}', $stored['css'] );
+		$this->assertSame( 'f();', $stored['js'] );
+	}
+
+	public function test_a_normal_content_save_does_not_clobber_enable_blocks(): void {
+		$id = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish' ) );
+		PageFlag::enable( $id );
+		\Rawmark\Storage\Source::save( $id, '<p>x</p>', '', '', array( 'enable_blocks' => true ) );
+
+		// A plain content save sends no settings at all.
+		$this->client_save( $id, array( 'title' => 'My page', 'html' => '<p>edited</p>' ) );
+
+		wp_cache_flush();
+		$this->assertTrue( \Rawmark\Storage\Source::get( $id )['settings']['enable_blocks'] );
+	}
 }

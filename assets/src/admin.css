@@ -156,11 +156,13 @@ body.rawmark-editor-screen #wpbody-content > .error {
 	display: inline-block;
 }
 
-/* .rawmark-editor__select shares this block on purpose - one definition of
-   "what a toolbar control looks like" that both a <button> and a <select>
-   pull from, so a future change here (radius, border color, height) can't
-   drift between the two the way two separately-maintained copies did. */
+/* .rawmark-editor__select and __toggle share this block on purpose - one
+   definition of "what a toolbar control looks like" that a <button>, a
+   <select> and a checkbox label all pull from, so a future change here
+   (radius, border color, height) can't drift between them the way two
+   separately-maintained copies did. */
 .rawmark-editor__btn,
+.rawmark-editor__toggle,
 .rawmark-editor__select {
 	height: 32px;
 	padding: 0 14px;
@@ -173,7 +175,21 @@ body.rawmark-editor-screen #wpbody-content > .error {
 	font-weight: 500;
 	cursor: pointer;
 }
+/* A label, not a button, so it needs its own box alignment - everything
+   visual still comes from the shared block above. */
+.rawmark-editor__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	white-space: nowrap;
+}
+.rawmark-editor__toggle input {
+	margin: 0;
+	cursor: pointer;
+}
+
 .rawmark-editor__btn:hover,
+.rawmark-editor__toggle:hover,
 .rawmark-editor__select:hover {
 	/* background-color, not the background shorthand - shorthand resets
 	   background-image to none, which would delete the select's arrow. */

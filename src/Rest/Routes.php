@@ -132,6 +132,11 @@ final class Routes implements Hookable {
 								return is_numeric( $value ) && (int) $value >= 0;
 							},
 						),
+						'settings' => array(
+							'validate_callback' => static function ( $value ): bool {
+								return is_array( $value );
+							},
+						),
 					),
 				),
 			)
@@ -216,6 +221,11 @@ final class Routes implements Hookable {
 			'footerSnippetId' => array(
 				'validate_callback' => static function ( $value ): bool {
 					return is_numeric( $value ) && (int) $value >= 0;
+				},
+			),
+			'settings'        => array(
+				'validate_callback' => static function ( $value ): bool {
+					return is_array( $value );
 				},
 			),
 		);

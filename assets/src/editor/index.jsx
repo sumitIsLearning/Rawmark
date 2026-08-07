@@ -121,6 +121,7 @@ function EditorApp({ postId, objectType }) {
   const [footerSnippetId, setFooterSnippetId] = useState(0);
   const [previewPostId, setPreviewPostId] = useState(0);
   const [previewCandidates, setPreviewCandidates] = useState([]);
+  const [enableBlocks, setEnableBlocks] = useState(false);
 
   const paneRefs = useRef({});
   const paneInstances = useRef({});
@@ -133,12 +134,15 @@ function EditorApp({ postId, objectType }) {
   const savedAtRef = useRef(0);
   const previewTimer = useRef(null);
   const layoutRef = useRef(layout);
+  const previewPostIdRef = useRef(previewPostId);
+  const schedulePreviewRef = useRef(null);
 
   activeRef.current = active;
   sourceRef.current = source;
   titleRef.current = title;
   statusRef.current = status;
   layoutRef.current = layout;
+  previewPostIdRef.current = previewPostId;
 
   const updatePreviewNow = useCallback(
     (next) => {
@@ -152,7 +156,7 @@ function EditorApp({ postId, objectType }) {
         css: next.css,
         js: next.js,
         postId,
-        previewPostId: previewPostId || undefined,
+        previewPostId: previewPostIdRef.current || undefined,
       })
         .then((data) => {
           if (previewInstance.current) {
@@ -166,7 +170,14 @@ function EditorApp({ postId, objectType }) {
           // keeps showing its last successful render.
         });
     },
-    [postId, previewPostId]
+    // previewPostId is read through a ref, not a dependency, on purpose:
+    // this callback's identity feeds schedulePreview, which the CodeMirror
+    // pane-mount effect used to depend on. Any identity change there tore
+    // down all three panes and - because the mount guard sees the stale,
+    // already-destroyed instance - never rebuilt them, blanking the editor.
+    // postId cannot change for the life of an editor session, so this is
+    // now stable for good.
+    [postId]
   );
 
   const schedulePreview = useCallback(
@@ -176,6 +187,11 @@ function EditorApp({ postId, objectType }) {
     },
     [updatePreviewNow]
   );
+
+  // The pane-mount effect reads the scheduler through this ref rather than
+  // taking it as a dependency, so panes mount exactly once per session no
+  // matter what happens to callback identities above.
+  schedulePreviewRef.current = schedulePreview;
 
   const setActive = useCallback((key) => {
     setActiveState(key);
@@ -232,7 +248,7 @@ function EditorApp({ postId, objectType }) {
         onChange: (value) => {
           setSource((prev) => {
             const next = { ...prev, [key]: value };
-            schedulePreview(next);
+            schedulePreviewRef.current(next);
             return next;
           });
           setModified((prev) => ({ ...prev, [key]: true }));
@@ -250,8 +266,11 @@ function EditorApp({ postId, objectType }) {
     return () => {
       Object.values(instances).forEach((pane) => pane.destroy());
     };
+    // Deliberately empty: mount once, never tear down mid-session. The
+    // scheduler is reached through schedulePreviewRef so no callback
+    // identity change can destroy these panes (see updatePreviewNow).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schedulePreview]);
+  }, []);
 
   // Load the saved source and push it into the panes + preview.
   useEffect(() => {
@@ -273,6 +292,7 @@ function EditorApp({ postId, objectType }) {
         setHeaderSnippetId(data.headerSnippetId || 0);
         setFooterSnippetId(data.footerSnippetId || 0);
         setPreviewPostId(data.previewPostId || 0);
+        setEnableBlocks(!!(data.settings && data.settings.enable_blocks));
         setSource(next);
         setSaveState('saved');
         savedAtRef.current = Date.now();
@@ -430,6 +450,21 @@ function EditorApp({ postId, objectType }) {
       saveSnippet(postId, { previewPostId: id }).catch((err) => setError(err.message));
     },
     [postId]
+  );
+
+  // Saves on its own, immediately, like the header/footer pickers - it's a
+  // render setting, not editor content. Sent without html/css/js, which the
+  // server preserves (see SaveLifecycleTest's settings-only save coverage).
+  const saveEnableBlocks = useCallback(
+    (checked) => {
+      setEnableBlocks(checked);
+      const payload = { settings: { enable_blocks: checked } };
+      const save = objectType === 'snippet' ? saveSnippet(postId, payload) : savePage(postId, payload);
+      save
+        .then(() => updatePreviewNow(sourceRef.current))
+        .catch((err) => setError(err.message));
+    },
+    [postId, objectType, updatePreviewNow]
   );
 
   const doSaveAsSnippet = useCallback(() => {
@@ -674,6 +709,17 @@ function EditorApp({ postId, objectType }) {
               </select>
             </>
           )}
+          <label
+            className="rawmark-editor__toggle"
+            title="Run do_blocks() on this source before shortcodes, so pasted block markup (SureCart, core blocks) renders instead of sitting inert"
+          >
+            <input
+              type="checkbox"
+              checked={enableBlocks}
+              onChange={(event) => saveEnableBlocks(event.target.checked)}
+            />
+            Render blocks
+          </label>
           {objectType === 'page' && (
             <>
               <button type="button" className="rawmark-editor__btn rawmark-editor__btn--ghost" onClick={() => doSave()}>
@@ -699,10 +745,21 @@ function EditorApp({ postId, objectType }) {
                   onChange={(event) => savePreviewPostId(Number(event.target.value) || 0)}
                 >
                   <option value="">Preview as: (none)</option>
-                  {previewCandidates.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>
-                      Preview as: {candidate.title} ({candidate.typeLabel})
-                    </option>
+                  {/* Grouped by post type so the type stays visible when a
+                      long title truncates the option text - picking a blog
+                      post to preview a product template renders an empty
+                      page, and the cut-off "(Products)" made that easy to
+                      do by accident. */}
+                  {[...new Set(previewCandidates.map((c) => c.typeLabel))].map((typeLabel) => (
+                    <optgroup key={typeLabel} label={typeLabel}>
+                      {previewCandidates
+                        .filter((candidate) => candidate.typeLabel === typeLabel)
+                        .map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            {candidate.title}
+                          </option>
+                        ))}
+                    </optgroup>
                   ))}
                 </select>
               )}

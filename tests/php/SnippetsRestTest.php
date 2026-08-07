@@ -125,6 +125,79 @@ class Test_Snippets_Rest extends WP_UnitTestCase {
 		$this->assertSame( '', get_post_meta( $id, '_rawmark_preview_post_id', true ) );
 	}
 
+	public function test_get_item_includes_settings(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		Source::save( $id, '<p>x</p>', '', '', array( 'enable_blocks' => true ) );
+
+		$response = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/rawmark/v1/snippets/' . $id ) );
+
+		$this->assertTrue( $response->get_data()['settings']['enable_blocks'] );
+	}
+
+	public function test_update_item_sets_enable_blocks(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		Source::save( $id, '<p>x</p>', '', '', array() );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'settings' => array( 'enable_blocks' => true ) ) );
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		wp_cache_flush();
+		$this->assertTrue( Source::get( $id )['settings']['enable_blocks'] );
+	}
+
+	// Content must survive a settings-only save - the editor sends the
+	// checkbox on its own, with no html/css/js in the body.
+	public function test_update_item_settings_only_save_preserves_content(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		Source::save( $id, '<p>keep me</p>', '.a{}', 'f();', array() );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'settings' => array( 'enable_blocks' => true ) ) );
+		rest_get_server()->dispatch( $request );
+
+		wp_cache_flush();
+		$stored = Source::get( $id );
+		$this->assertSame( '<p>keep me</p>', $stored['html'] );
+		$this->assertSame( '.a{}', $stored['css'] );
+		$this->assertSame( 'f();', $stored['js'] );
+		$this->assertTrue( $stored['settings']['enable_blocks'] );
+	}
+
+	public function test_update_item_can_turn_enable_blocks_back_off(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		Source::save( $id, '<p>x</p>', '', '', array( 'enable_blocks' => true ) );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'settings' => array( 'enable_blocks' => false ) ) );
+		rest_get_server()->dispatch( $request );
+
+		wp_cache_flush();
+		$this->assertFalse( Source::get( $id )['settings']['enable_blocks'] );
+	}
+
+	// Only enable_blocks is writable over REST. The other settings keys stay
+	// PHP-only, so a request naming one must not change it.
+	public function test_update_item_ignores_settings_keys_other_than_enable_blocks(): void {
+		$this->admin();
+		$id = self::factory()->post->create( array( 'post_type' => Snippet::SLUG ) );
+		Source::save( $id, '<p>x</p>', '', '', array( 'seo_title' => 'Original' ) );
+
+		$request = new WP_REST_Request( 'PUT', '/rawmark/v1/snippets/' . $id );
+		$request->set_body_params( array( 'settings' => array( 'seo_title' => 'Hijacked', 'enable_blocks' => true ) ) );
+		rest_get_server()->dispatch( $request );
+
+		wp_cache_flush();
+		$stored = Source::get( $id );
+		$this->assertSame( 'Original', $stored['settings']['seo_title'] );
+		$this->assertTrue( $stored['settings']['enable_blocks'] );
+	}
+
 	public function test_get_item_404s_for_a_non_snippet_id(): void {
 		$this->admin();
 		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
