@@ -1,0 +1,1093 @@
+<title>Rawmark: Authoring Reference</title>
+<style>
+  :root {
+    --accent: #0075de;
+    --accent-active: #005bab;
+    --accent-soft: #e5f0fc;
+    --canvas: #f6f5f4;
+    --surface: #ffffff;
+    --ink: #191919;
+    --ink-2: #4b4b4b;
+    --ink-3: #6b6b6b;
+    --ink-4: #8b8b86;
+    --hairline: #e6e6e6;
+    --hairline-strong: #d9d7d2;
+    --code-bg: #f1f0ee;
+    --warn-bg: #fbf3e3;
+    --warn-ink: #7a5a12;
+    --ok: #1f7a3d;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #4da3ff;
+      --accent-active: #7cbcff;
+      --accent-soft: #17263a;
+      --canvas: #17181a;
+      --surface: #1e2023;
+      --ink: #f0efe9;
+      --ink-2: #cbc9c2;
+      --ink-3: #a4a29b;
+      --ink-4: #7c7a74;
+      --hairline: #303236;
+      --hairline-strong: #3b3d42;
+      --code-bg: #232528;
+      --warn-bg: #2c2410;
+      --warn-ink: #e0b95c;
+      --ok: #4fb377;
+    }
+  }
+  :root[data-theme="dark"] {
+    --accent: #4da3ff;
+    --accent-active: #7cbcff;
+    --accent-soft: #17263a;
+    --canvas: #17181a;
+    --surface: #1e2023;
+    --ink: #f0efe9;
+    --ink-2: #cbc9c2;
+    --ink-3: #a4a29b;
+    --ink-4: #7c7a74;
+    --hairline: #303236;
+    --hairline-strong: #3b3d42;
+    --code-bg: #232528;
+    --warn-bg: #2c2410;
+    --warn-ink: #e0b95c;
+    --ok: #4fb377;
+  }
+  :root[data-theme="light"] {
+    --accent: #0075de;
+    --accent-active: #005bab;
+    --accent-soft: #e5f0fc;
+    --canvas: #f6f5f4;
+    --surface: #ffffff;
+    --ink: #191919;
+    --ink-2: #4b4b4b;
+    --ink-3: #6b6b6b;
+    --ink-4: #8b8b86;
+    --hairline: #e6e6e6;
+    --hairline-strong: #d9d7d2;
+    --code-bg: #f1f0ee;
+    --warn-bg: #fbf3e3;
+    --warn-ink: #7a5a12;
+    --ok: #1f7a3d;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: Iowan Old Style, Georgia, "Noto Serif", ui-serif, serif;
+    font-weight: 600;
+    color: var(--ink);
+    text-wrap: balance;
+    line-height: 1.25;
+  }
+  code, pre, .mono {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface);
+    padding: 22px max(24px, calc(50% - 620px));
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .masthead .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--surface);
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    font-size: 15px;
+    flex: none;
+  }
+  .masthead .word {
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+  }
+  .masthead .version {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--code-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .masthead .tagline {
+    color: var(--ink-3);
+    font-size: 14px;
+    margin-left: auto;
+    text-align: right;
+  }
+  .masthead .tagline .note {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-4);
+  }
+  .masthead .dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 7px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .masthead .dl-btn:hover { color: var(--accent-active); }
+
+  /* ---------- layout ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 48px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 40px 24px 120px;
+  }
+  nav.toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    font-size: 13.5px;
+  }
+  nav.toc .group-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: var(--ink-4);
+    margin: 20px 0 6px;
+  }
+  nav.toc .group-label:first-child { margin-top: 0; }
+  nav.toc a {
+    display: block;
+    color: var(--ink-2);
+    text-decoration: none;
+    padding: 4px 0;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -10px;
+  }
+  nav.toc a:hover { color: var(--ink); border-left-color: var(--hairline-strong); }
+
+  main { min-width: 0; max-width: 720px; }
+  main > section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  main > section:first-child { margin-top: 0; }
+  h1 { font-size: 2rem; margin: 0 0 10px; }
+  h2 { font-size: 1.4rem; margin: 0 0 14px; padding-top: 4px; }
+  h3 { font-size: 1.05rem; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; color: var(--ink-2); }
+  .lede { font-size: 1.05rem; color: var(--ink-2); margin-bottom: 8px; }
+  ul, ol { color: var(--ink-2); padding-left: 22px; margin: 0 0 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); }
+
+  .eyebrow {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  /* ---------- code ---------- */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin: 0 0 16px;
+  }
+  code:not(pre code) {
+    background: var(--code-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.88em;
+  }
+
+  /* ---------- marker cards ---------- */
+  .marker {
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    background: var(--surface);
+    padding: 14px 16px;
+    margin: 0 0 16px;
+  }
+  .marker .kind {
+    font-family: ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .marker pre {
+    margin: 0;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+
+  /* ---------- tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  th {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  td code { white-space: nowrap; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    margin: 0 0 16px;
+    border: 1px solid var(--hairline);
+  }
+  .callout.warn { background: var(--warn-bg); border-color: transparent; color: var(--warn-ink); }
+  .callout.warn strong { color: inherit; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  .field-card {
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--surface);
+  }
+  .field-card .name { font-family: ui-monospace, monospace; font-size: 13px; color: var(--ink); display: block; margin-bottom: 4px; }
+  .field-card .desc { font-size: 13px; color: var(--ink-3); margin: 0; }
+
+  hr.rule { border: none; border-top: 1px solid var(--hairline); margin: 0 0 40px; }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc { position: static; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    nav.toc .group-label { display: none; }
+  }
+</style>
+
+<header class="masthead">
+  <span class="mark">R</span>
+  <span class="word">rawmark</span>
+  <span class="version">v0.3.0</span>
+  <span class="tagline">Authoring Reference<span class="note">verified against the current codebase, not a roadmap</span></span>
+  <a class="dl-btn" href="https://github.com/sumitIsLearning/Rawmark/releases/download/v0.3.0/rawmark-v0.3.0.zip" download>&#8595; Download .zip</a>
+  <a class="dl-btn" href="https://github.com/sumitIsLearning/Rawmark/releases/download/v0.3.0/SKILL.md" download>&#8595; Download SKILL.md</a>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="Table of contents">
+    <div class="group-label">Foundations</div>
+    <a href="#what">What Rawmark renders</a>
+    <a href="#panes">The three panes</a>
+    <a href="#static">Static pages, plainly</a>
+    <div class="group-label">Dynamic content</div>
+    <a href="#snippets">Snippets</a>
+    <a href="#header-footer">Header &amp; footer</a>
+    <a href="#post-template">Post Template</a>
+    <a href="#post-loop">Post Loop</a>
+    <a href="#shortcodes">Shortcodes</a>
+    <a href="#markers">Marker reference</a>
+    <div class="group-label">Integrations</div>
+    <a href="#woocommerce">WooCommerce</a>
+    <a href="#surecart">SureCart &amp; blocks</a>
+    <div class="group-label">Writing well</div>
+    <a href="#naming">Naming &amp; formatting</a>
+    <a href="#a11y">Accessibility baseline</a>
+    <a href="#failsafe">The fail-safe rule</a>
+    <div class="group-label">Operating limits</div>
+    <a href="#trust">Trust model</a>
+    <a href="#limits">Size limits</a>
+    <a href="#editor">Editor conventions</a>
+    <a href="#not-built">Not built yet</a>
+  </nav>
+
+  <main>
+
+    <section id="what">
+      <span class="eyebrow">Start here</span>
+      <h1>What Rawmark renders</h1>
+      <p class="lede">A Rawmark "Code Page" is a standalone HTML document. No theme header, no theme footer, no theme stylesheet, no block-library CSS. What you write in the three panes, plus whatever WordPress plugins add through <code>wp_head</code>/<code>wp_footer</code>, is the entire page.</p>
+      <p>This is the whole document Rawmark builds. Nothing else is added, nothing is filtered:</p>
+      <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="{site language}"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;{the page's title}&lt;/title&gt;
+  &lt;!-- wp_head() fires here --&gt;
+  &lt;style&gt;
+    /* your CSS pane */
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body class="rawmark-page rawmark-page--{slug}"&gt;
+
+  &lt;!-- your HTML pane --&gt;
+
+  &lt;script&gt;
+    /* your JS pane */
+  &lt;/script&gt;
+  &lt;!-- wp_footer() fires here --&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+      <p>Your CSS loads in <code>&lt;head&gt;</code>, so there's no flash of unstyled content. Your JS runs after the DOM is parsed but before <code>wp_footer</code>. The <code>&lt;body&gt;</code> carries a per-page class, so page-scoped CSS never needs an extra wrapper <code>&lt;div&gt;</code>. There is no reset, no normalize, no theme default: a bare <code>&lt;h1&gt;</code> looks like a browser default <code>&lt;h1&gt;</code>. That's the trade for a genuinely clean document.</p>
+    </section>
+
+    <section id="panes">
+      <h2>The three panes</h2>
+      <h3>HTML: body content only</h3>
+      <p>No <code>&lt;!DOCTYPE&gt;</code>, <code>&lt;html&gt;</code>, <code>&lt;head&gt;</code>, or <code>&lt;body&gt;</code>. Rawmark supplies those. Start with a single root element:</p>
+      <pre><code>&lt;main class="lp"&gt;
+  &lt;section class="lp__hero"&gt;...&lt;/section&gt;
+&lt;/main&gt;</code></pre>
+      <h3>CSS: plain rules, no <code>&lt;style&gt;</code> tag</h3>
+      <p>Rawmark wraps it for you. No preprocessor, no build step. Write the CSS you want shipped.</p>
+      <h3>JS: plain script, no <code>&lt;script&gt;</code> tag</h3>
+      <p>It runs as a classic script at the end of <code>&lt;body&gt;</code>: the DOM is already parsed, so no <code>DOMContentLoaded</code> wrapper is needed. It is <em>not</em> a module, so <code>import</code> doesn't work; pull in a library with a <code>&lt;script src&gt;</code> tag in the HTML pane instead. Wrap your own code in an IIFE to keep the global scope clean:</p>
+      <pre><code>(function () {
+  "use strict";
+  // your code
+})();</code></pre>
+    </section>
+
+    <section id="static">
+      <h2>Static pages, plainly</h2>
+      <p class="lede">Most Code Pages are entirely static: you write exact HTML/CSS/JS, and exactly that renders. Nothing is substituted, queried, or computed on the way out.</p>
+      <p><strong>The JS pane is not required for a page to work.</strong> Leave it empty and the page still renders, still styles correctly, still ships its content. JS is only for genuine client-side behavior: things that have to happen in the visitor's browser, after the page has loaded.</p>
+      <ul>
+        <li>Toggling a mobile nav open and closed</li>
+        <li>Animating something on scroll</li>
+        <li>Validating a form before submit</li>
+        <li>Fetching something after the initial page load</li>
+      </ul>
+      <p>Pulling in real WordPress content (a post's title, a list of recent posts) is <strong>never</strong> one of those things in Rawmark. That's the dynamic-content system below, and it happens entirely on the server, before your JS pane would even get a chance to run.</p>
+    </section>
+
+    <section id="snippets">
+      <span class="eyebrow">Dynamic, mechanism 1 of 3</span>
+      <h2>Snippets</h2>
+      <p>A Snippet is a reusable fragment of HTML/CSS/JS, stored once and referenced from any number of pages. Insert one with a self-closing marker:</p>
+      <div class="marker">
+        <span class="kind">Self-closing</span>
+        <pre><code>&lt;!-- rawmark:snippet id='42' --&gt;</code></pre>
+      </div>
+      <p><strong>Snippets are live, not copied.</strong> The marker resolves to the snippet's <em>current</em> content on every render. Edit the snippet once, and every page referencing it updates immediately: there is no "paste and diverge" step. If you want a one-off variation, don't insert the snippet; copy its content into the page's own panes and edit that instead.</p>
+      <p>A snippet referencing a deleted or otherwise invalid ID resolves to nothing (see <a href="#failsafe">the fail-safe rule</a>).</p>
+    </section>
+
+    <section id="header-footer">
+      <span class="eyebrow">Dynamic, mechanism 2 of 3</span>
+      <h2>Header &amp; footer</h2>
+      <p>Two independent ways to wrap a page in a shared header/footer, in priority order:</p>
+      <h3>1. Per-page picker (wins when set)</h3>
+      <p>Each flagged Page or Post can pick its own header Snippet and footer Snippet from the editor's topbar selects. That page renders with exactly those, regardless of any site-wide default.</p>
+      <h3>2. Header Template / Footer Template (site-wide fallback)</h3>
+      <p>From the Snippets screen, designate one Snippet as the site's Header Template and/or Footer Template. Any flagged Code Page with <em>no</em> per-page header/footer of its own falls back to these. Scoped to real Code Pages only: a Post rendering through the Post Template below does not pick up a global header/footer.</p>
+      <p>Both wraps happen automatically; there's no marker to type for either one.</p>
+    </section>
+
+    <section id="post-template">
+      <span class="eyebrow">Dynamic, mechanism 3 of 3</span>
+      <h2>Post Template</h2>
+      <p>One Snippet, designated from the Snippets screen, becomes the layout for every ordinary WordPress Post that hasn't been individually flagged as its own Code Page. Write the layout once; seven merge tags substitute each Post's real data at render time:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tag</th><th>Resolves to</th></tr></thead>
+          <tbody>
+            <tr><td><code>&lt;!-- rawmark:post_title --&gt;</code></td><td>The post's title, escaped</td></tr>
+            <tr><td><code>&lt;!-- rawmark:post_content --&gt;</code></td><td>Full content, through WordPress's real <code>the_content</code> filter chain (blocks, shortcodes, embeds all run)</td></tr>
+            <tr><td><code>&lt;!-- rawmark:post_excerpt --&gt;</code></td><td>The excerpt, escaped</td></tr>
+            <tr><td><code>&lt;!-- rawmark:post_date --&gt;</code></td><td>The formatted date, escaped</td></tr>
+            <tr><td><code>&lt;!-- rawmark:featured_image --&gt;</code></td><td>Featured image markup, or nothing if none is set</td></tr>
+            <tr><td><code>&lt;!-- rawmark:permalink --&gt;</code></td><td>The post's URL, escaped</td></tr>
+            <tr><td><code>&lt;!-- rawmark:author_name --&gt;</code></td><td>The author's display name, escaped</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>An individually-flagged Post always renders its own source instead of the template. The specific case always wins over the general one.</p>
+    </section>
+
+    <section id="post-loop">
+      <h2>Post Loop</h2>
+      <p>Repeats a block of your own HTML once per matching Post: a filtered list, not a fixed layout. You write the markup; Rawmark supplies the data.</p>
+      <div class="marker">
+        <span class="kind">Paired</span>
+        <pre><code>&lt;!-- rawmark:post_loop category='news' tag='featured' count='5' --&gt;
+  &lt;h2&gt;&lt;!-- rawmark:post_title --&gt;&lt;/h2&gt;
+  &lt;p&gt;&lt;!-- rawmark:post_excerpt --&gt;&lt;/p&gt;
+  &lt;a href="&lt;!-- rawmark:permalink --&gt;"&gt;Read more&lt;/a&gt;
+&lt;!-- /rawmark:post_loop --&gt;</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Default</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>category</code></td><td>any</td><td>Category slug. Omit to match every category.</td></tr>
+            <tr><td><code>tag</code></td><td>any</td><td>Tag slug. Omit to match every tag.</td></tr>
+            <tr><td><code>count</code></td><td><code>5</code></td><td>Clamped to a maximum of <code>50</code> server-side, regardless of what's typed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>All seven Post Template tags work inside the loop body, resolving to <em>that iteration's</em> post. If nothing matches, the whole block resolves to nothing, same as an unset template.</p>
+      <p>Only works in a flagged Page or Post's own top-level source, not inside a Snippet inserted elsewhere, not in a header or footer.</p>
+      <div class="callout warn">
+        <p><strong>Every <code>post_loop</code> needs its closing tag.</strong> Miss <code>&lt;!-- /rawmark:post_loop --&gt;</code> and the block you meant as a repeating template renders once, literally, as ordinary page content. Not a template, just text. The editor's lint indicator catches a mismatched open/close count; don't ignore it.</p>
+      </div>
+      <p>Loops don't nest. A <code>post_loop</code> placed inside another one closes the outer loop early. That's not supported, and it isn't silently fixed for you.</p>
+    </section>
+
+    <section id="shortcodes">
+      <h2>Shortcodes</h2>
+      <p>Rawmark expands WordPress shortcodes — the <code>[shortcode]</code> bracket syntax — anywhere in a flagged Page or Post's rendered HTML, including content pulled in through a header, footer, or inserted Snippet. This runs through WordPress's own <code>do_shortcode()</code>, not the full <code>the_content</code> filter chain: shortcodes execute, but <code>wpautop()</code> and the other content filters never touch your markup.</p>
+      <p>This is what lets a plugin's own shortcode — WooCommerce's <code>[woocommerce_cart]</code>, for example — render and stay interactive inside otherwise hand-authored HTML. See <a href="#woocommerce">WooCommerce</a> below for the specific recipe.</p>
+      <div class="callout warn">
+        <p><strong>The live preview iframe does not expand shortcodes.</strong> It's built client-side from your draft HTML with no server round-trip, so a shortcode shows as literal bracket text while you're editing. It renders correctly once viewed on the real, published URL. Not a bug, just not wired up yet.</p>
+      </div>
+      <p>Any shortcode you reference runs whatever PHP that shortcode's plugin registered for it — the same trust boundary as the rest of a Rawmark pane. See <a href="#trust">Trust model</a>.</p>
+    </section>
+
+    <section id="markers">
+      <h2>Marker reference</h2>
+      <p>Every marker lives inside an HTML comment on purpose, so it can never collide with a template-engine syntax like <code>{{ }}</code> that you might legitimately paste from somewhere else. Attributes are always single-quoted.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Marker</th><th>Shape</th><th>Where valid</th></tr></thead>
+          <tbody>
+            <tr><td>Insert a Snippet</td><td><code>&lt;!-- rawmark:snippet id='N' --&gt;</code></td><td>Any page's HTML pane</td></tr>
+            <tr><td>Post data (7 tags)</td><td><code>&lt;!-- rawmark:post_title --&gt;</code> etc.</td><td>Post Template source, or inside a <code>post_loop</code> body</td></tr>
+            <tr><td>Post Loop</td><td><code>&lt;!-- rawmark:post_loop ... --&gt; ... &lt;!-- /rawmark:post_loop --&gt;</code></td><td>Top-level flagged Page/Post source only</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="woocommerce">
+      <span class="eyebrow">Integration</span>
+      <h2>WooCommerce</h2>
+      <p class="lede">Rawmark can own the markup and styling of a WooCommerce store's pages while WooCommerce keeps running everything dynamic underneath it: cart totals, coupon fields, payment gateway rendering, account forms. None of this touches WooCommerce's data model — Rawmark never reads or writes a product, order, or setting. It's markup layered on top of WooCommerce's own shortcode output, nothing more.</p>
+
+      <h3>Cart, Checkout, My Account</h3>
+      <p>These three work today with no extra step. WooCommerce already sets each one up with its page content <em>being</em> the relevant shortcode:</p>
+      <pre><code>[woocommerce_cart]
+[woocommerce_checkout]
+[woocommerce_my_account]</code></pre>
+      <p>Flag the page in Rawmark, keep that shortcode in the HTML pane, and wrap it in whatever markup and CSS the design calls for: a page-width container, a two-column layout, custom spacing. WooCommerce still renders the interactive form and totals wherever you place the shortcode, and its AJAX cart updates and localized script data (<code>wc_cart_params</code> and friends) keep working, because <code>wp_head()</code>/<code>wp_footer()</code> fire on a Rawmark page by default (see <a href="#not-built">Not built yet</a> — the toggle that could disable this has no editor UI, so it can't get switched off by accident).</p>
+
+      <h3>Shop &amp; Single Product</h3>
+      <p>These two are different, and it's a WooCommerce constraint, not a Rawmark one: WooCommerce's own template loader (<code>archive-product.php</code> / <code>single-product.php</code>) runs for the Shop page and every product URL regardless of that page's content. Flagging WooCommerce's default Shop page in Rawmark has no effect; the theme's product templates still render underneath.</p>
+      <p>The working pattern is a fresh Page, not the default one:</p>
+      <ul>
+        <li>Create a new Page, flag it in Rawmark, build the layout you want.</li>
+        <li>Drop in <code>[products limit="12" columns="4"]</code> for a shop-style grid, or <code>[product_page id="107"]</code> for a single product's full buy box.</li>
+        <li>Point navigation and any "Shop" links at this new page instead of WooCommerce's default one.</li>
+      </ul>
+      <p>WooCommerce's product shortcodes take the same attributes documented in WooCommerce's own shortcode reference (<code>category</code>, <code>orderby</code>, <code>columns</code>, and so on). Rawmark doesn't add or restrict any of them; it only expands the shortcode, per <a href="#shortcodes">Shortcodes</a> above.</p>
+
+      <div class="callout warn">
+        <p><strong>Don't try to restyle the locked Shop/Single Product templates directly.</strong> WooCommerce ignores their page content by design. Build a new Page with the shortcode approach above instead of fighting the template loader.</p>
+      </div>
+    </section>
+
+    <section id="surecart">
+      <span class="eyebrow">Integration</span>
+      <h2>SureCart &amp; blocks</h2>
+      <p class="lede">SureCart's interactive pieces — Cart, Checkout, and every part of a product page except the title and description — are Gutenberg blocks, not shortcodes. Rawmark renders them, but only with <strong>Render blocks</strong> switched on and, for product pages, only inside the right wrapper. Both are covered below.</p>
+
+      <h3>Turn on Render blocks</h3>
+      <p>The <strong>Render blocks</strong> checkbox in the editor topbar (the <code>enable_blocks</code> setting) makes Rawmark run <code>do_blocks()</code> on the composed page before <code>do_shortcode()</code>, so real block markup renders and functions instead of sitting inert as HTML comments. It's off by default, because most Rawmark pages are hand-authored HTML with no block comments in them at all.</p>
+      <pre><code>&lt;!-- wp:surecart/checkout-form {"id":134} --&gt;&lt;!-- /wp:surecart/checkout-form --&gt;</code></pre>
+      <p>For a Post Template, it's the <em>Snippet's</em> checkbox that matters — that's where the rendered source comes from.</p>
+
+      <h3>Product pages: wrap in <code>surecart/product-page</code></h3>
+      <p>A product page's parts (price, media, quantity, buy buttons) are child blocks that declare <code>surecart/product-page</code> in their <code>ancestor</code> list. That parent is what supplies the product context, calls <code>wp_interactivity_state()</code>, emits the <code>&lt;form data-wp-interactive&gt;</code> element, and enqueues SureCart's <code>@surecart/product-page</code> script module. Rendered without it, the children emit structural markup with empty values and dead controls.</p>
+      <p>So wrap your own markup in the block. Everything inside it — your elements, your classes — passes through untouched:</p>
+      <pre><code>&lt;!-- wp:surecart/product-page --&gt;
+&lt;main class="shop__product"&gt;
+  &lt;p class="shop__eyebrow"&gt;Shop&lt;/p&gt;
+  &lt;!-- wp:surecart/product-title /--&gt;
+  &lt;!-- wp:surecart/product-selected-price-amount /--&gt;
+  &lt;!-- wp:surecart/product-quantity /--&gt;
+  &lt;!-- wp:surecart/product-buy-buttons /--&gt;
+&lt;/main&gt;
+&lt;!-- /wp:surecart/product-page --&gt;</code></pre>
+
+      <div class="callout warn">
+        <p><strong>SureCart's product shortcodes are not a substitute for the wrapper.</strong> <code>[sc_product_title]</code> and <code>[sc_product_description]</code> work standalone because they read a PHP global. <code>[sc_product_price]</code>, <code>[sc_product_media]</code>, <code>[sc_product_quantity]</code> and <code>[sc_product_cart_button]</code> do <em>not</em> — they need the ancestor, and render empty and non-functional without it. That split is what makes this worth calling out: the page looks built because the title appears, while the price is blank and add-to-cart does nothing. <code>[sc_product_list]</code> and <code>[sc_product_page id='…']</code> are self-contained and fine anywhere.</p>
+      </div>
+
+      <p>SureCart's cart itself is a slide-out drawer (<code>surecart/slide-out-cart</code>), not a routable page — there's no standalone "Cart" URL to flag the way Checkout has one.</p>
+
+      <h3>Self-closing means self-closing</h3>
+      <p>The block parser only recognizes a void block when the slash sits directly against the closer: <code>/--&gt;</code>. Every near miss (<code>&lt;!-- wp:surecart/product-media / --&gt;</code>, <code>&lt;!-- wp:surecart/product-media/ --&gt;</code>) parses as plain text instead of a block. Nothing renders, nothing errors, and depending on how the comment got mangled the block's name can leak onto the page as visible text (<code>wp:surecart/product-media /</code>). If a block "doesn't render," compare its comment character for character with a known-good one before suspecting anything else.</p>
+
+      <h3>Container blocks need their children</h3>
+      <p>Some SureCart blocks are only wrappers. <code>surecart/product-buy-buttons</code> renders a bare div around whatever is inside it, and the actual buttons are separate <code>surecart/product-buy-button</code> blocks you nest yourself. A self-closing <code>&lt;!-- wp:surecart/product-buy-buttons /--&gt;</code> renders an empty container, which reads as "the buy button is missing." The same nesting rule applies to <code>product-collection-tags</code> / <code>product-collection-tag</code>, <code>product-variant-pills</code> / <code>product-variant-pill</code>, and <code>product-price-chooser</code> / <code>product-price-choice-template</code>. SureCart's own single-product template (in the plugin's <code>templates/</code> directory) is the reference for what nests inside what.</p>
+      <pre><code>&lt;!-- wp:surecart/product-buy-buttons --&gt;
+&lt;div class="wp-block-surecart-product-buy-buttons wp-block-buttons is-layout-flex"&gt;
+  &lt;!-- wp:surecart/product-buy-button {"add_to_cart":true,"text":"Add To Cart"} /--&gt;
+  &lt;!-- wp:surecart/product-buy-button {"text":"Buy Now","className":"is-style-outline"} /--&gt;
+&lt;/div&gt;
+&lt;!-- /wp:surecart/product-buy-buttons --&gt;</code></pre>
+      <p>One SureCart setting does affect what you get: if the cart is disabled in SureCart, every buy button silently becomes a Buy Now (redirect to checkout) regardless of its <code>add_to_cart</code> attribute. It never hides the button outright.</p>
+
+      <h3>Preview as: pick the SureCart product</h3>
+      <p>A Snippet has no post of its own, so the editor's <strong>Preview as</strong> picker renders the template against a real post or product. The list groups candidates by post type. If the store runs WooCommerce and SureCart side by side and both have a product with the same name, picking the WooCommerce one renders every SureCart block empty (its query finds no <code>sc_product</code> with that ID). The fix is reading the optgroup label, not the item title. Same rule for any template: the preview product must match the blocks in the markup.</p>
+      <p>The preview iframe is sandboxed without <code>allow-same-origin</code>, on purpose. SureCart's interactive pieces load as ES modules and call the REST API, both of which an opaque-origin iframe cannot do. So the preview is an accurate check of layout, images, price, and styles, while add-to-cart clicks, variant switching, and the quantity stepper only work on the live URL. Judge looks in the preview, behavior on the real page.</p>
+
+      <h3>Some blocks wait for data</h3>
+      <p>Variant pills, the price chooser, the ad-hoc amount field, trial and fee lines, and the price interval all self-hide unless the product actually has that data (server-side <code>hidden</code>, no empty chrome). The review summary shows zeros until the first review, and Related Products stays empty while the store has a single product. An empty spot where one of these should be usually means "no data yet," not a broken template.</p>
+
+      <h3>Contain the media slider</h3>
+      <p>The media block renders as <code>.sc-image-media</code> (the outer slider) wrapping slides that each hold a <code>figure.wp-block-surecart-product-media</code>. Cap the <em>outer</em> element, and keep the grid tracks it lives in from stretching to fit the slider's intrinsic width (<code>minmax(0, 1fr)</code>, not bare <code>1fr</code>). Without both, the slide expands thousands of pixels past the viewport and the centered image scrolls off screen, leaving a page-width blank box with a slider arrow in it.</p>
+      <pre><code>.product__container { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.product .sc-image-media { max-width: 520px; margin: 0 auto; }
+.product .sc-image-media img { max-height: 560px; object-fit: contain; }</code></pre>
+
+      <h3>A complete product page, working example</h3>
+      <p>This is a full product detail template running live against SureCart: media gallery, collection tags, review summary, title, price row with scratch amount and sale badge, trial and fee lines, description, variant pills, price chooser, quantity, ad-hoc amount, Add to Cart and Buy Now, then Customer Reviews and Related Products below the form. Blocks that have no data on a given product simply hide themselves.</p>
+      <p><strong>HTML pane</strong> (Render blocks on):</p>
+      <pre><code>&lt;!-- wp:surecart/product-page --&gt;
+&lt;main class=&quot;rawmark-product&quot;&gt;
+
+  &lt;div class=&quot;rawmark-product__container&quot;&gt;
+
+    &lt;!-- LEFT: PRODUCT MEDIA --&gt;
+    &lt;section class=&quot;rawmark-product__media&quot;&gt;
+      &lt;!-- wp:surecart/product-media /--&gt;
+    &lt;/section&gt;
+
+    &lt;!-- RIGHT: PRODUCT INFO --&gt;
+    &lt;section class=&quot;rawmark-product__info&quot;&gt;
+
+      &lt;!-- COLLECTION TAGS --&gt;
+      &lt;div class=&quot;rawmark-product__collections&quot;&gt;
+        &lt;!-- wp:surecart/product-collection-tags --&gt;
+        &lt;!-- wp:surecart/product-collection-tag /--&gt;
+        &lt;!-- /wp:surecart/product-collection-tags --&gt;
+      &lt;/div&gt;
+
+      &lt;!-- REVIEW SUMMARY (stars + count) --&gt;
+      &lt;div class=&quot;rawmark-product__rating&quot;&gt;
+        &lt;!-- wp:surecart/product-review-average-rating-stars /--&gt;
+        &lt;!-- wp:surecart/product-review-total-rating /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PRODUCT TITLE --&gt;
+      &lt;div class=&quot;rawmark-product__title&quot;&gt;
+        &lt;!-- wp:surecart/product-title /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PRICE ROW: scratch + amount + interval + sale badge --&gt;
+      &lt;div class=&quot;rawmark-product__price&quot;&gt;
+        &lt;!-- wp:surecart/product-selected-price-scratch-amount /--&gt;
+        &lt;!-- wp:surecart/product-selected-price-amount /--&gt;
+        &lt;!-- wp:surecart/product-selected-price-interval /--&gt;
+        &lt;!-- wp:surecart/product-sale-badge /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- TRIAL + SETUP FEE (self-hide when the price has neither) --&gt;
+      &lt;div class=&quot;rawmark-product__price-meta&quot;&gt;
+        &lt;!-- wp:surecart/product-selected-price-trial /--&gt;
+        &lt;!-- wp:surecart/product-selected-price-fees /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PRODUCT DESCRIPTION --&gt;
+      &lt;div class=&quot;rawmark-product__description&quot;&gt;
+        &lt;!-- wp:surecart/product-description /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- VARIANT PILLS (self-hide when the product has no variants) --&gt;
+      &lt;div class=&quot;rawmark-product__variants&quot;&gt;
+        &lt;!-- wp:surecart/product-variant-pills --&gt;
+        &lt;!-- wp:surecart/product-variant-pill /--&gt;
+        &lt;!-- /wp:surecart/product-variant-pills --&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PRICE CHOOSER (self-hides when the product has a single price) --&gt;
+      &lt;div class=&quot;rawmark-product__price-choices&quot;&gt;
+        &lt;!-- wp:surecart/product-price-chooser --&gt;
+        &lt;!-- wp:surecart/product-price-choice-template {&quot;layout&quot;:{&quot;type&quot;:&quot;flex&quot;,&quot;justifyContent&quot;:&quot;space-between&quot;,&quot;flexWrap&quot;:&quot;nowrap&quot;,&quot;orientation&quot;:&quot;horizontal&quot;}} --&gt;
+        &lt;!-- wp:surecart/price-name /--&gt;
+        &lt;!-- wp:surecart/price-scratch-amount /--&gt;
+        &lt;!-- wp:surecart/price-amount /--&gt;
+        &lt;!-- wp:surecart/price-interval /--&gt;
+        &lt;!-- wp:surecart/price-trial /--&gt;
+        &lt;!-- wp:surecart/price-setup-fee /--&gt;
+        &lt;!-- /wp:surecart/product-price-choice-template --&gt;
+        &lt;!-- /wp:surecart/product-price-chooser --&gt;
+      &lt;/div&gt;
+
+      &lt;!-- QUANTITY --&gt;
+      &lt;div class=&quot;rawmark-product__quantity&quot;&gt;
+        &lt;!-- wp:surecart/product-quantity /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PAY-WHAT-YOU-WANT (self-hides unless the price is ad-hoc) --&gt;
+      &lt;div class=&quot;rawmark-product__adhoc&quot;&gt;
+        &lt;!-- wp:surecart/product-selected-price-ad-hoc-amount /--&gt;
+      &lt;/div&gt;
+
+      &lt;!-- PURCHASE ACTIONS --&gt;
+      &lt;div class=&quot;rawmark-product__actions&quot;&gt;
+        &lt;!-- wp:surecart/product-buy-buttons {&quot;style&quot;:{&quot;spacing&quot;:{&quot;blockGap&quot;:&quot;5px&quot;}}} --&gt;
+        &lt;div class=&quot;wp-block-surecart-product-buy-buttons wp-block-buttons sc-block-buttons is-layout-flex&quot;&gt;
+          &lt;!-- wp:surecart/product-buy-button {&quot;add_to_cart&quot;:true,&quot;text&quot;:&quot;Add To Cart&quot;} /--&gt;
+          &lt;!-- wp:surecart/product-buy-button {&quot;text&quot;:&quot;Buy Now&quot;,&quot;className&quot;:&quot;is-style-outline&quot;} /--&gt;
+        &lt;/div&gt;
+        &lt;!-- /wp:surecart/product-buy-buttons --&gt;
+      &lt;/div&gt;
+
+    &lt;/section&gt;
+&lt;!-- /wp:surecart/product-page --&gt;
+
+&lt;!-- CUSTOMER REVIEWS --&gt;
+&lt;section class=&quot;rawmark-reviews&quot;&gt;
+  &lt;div class=&quot;rawmark-reviews__head&quot;&gt;
+    &lt;h2 class=&quot;rawmark-reviews__heading&quot;&gt;Customer Reviews&lt;/h2&gt;
+  &lt;/div&gt;
+
+  &lt;!-- wp:surecart/product-review-list {&quot;query&quot;:{&quot;perPage&quot;:10,&quot;pages&quot;:0,&quot;offset&quot;:0}} --&gt;
+  &lt;!-- wp:surecart/product-reviews --&gt;
+
+  &lt;!-- wp:surecart/product-review-summary --&gt;
+  &lt;div class=&quot;rawmark-reviews__summary&quot;&gt;
+    &lt;div class=&quot;rawmark-reviews__average&quot;&gt;
+      &lt;!-- wp:surecart/product-review-average-rating-value /--&gt;
+      &lt;!-- wp:surecart/product-review-average-rating-stars /--&gt;
+      &lt;!-- wp:surecart/product-review-total-rating /--&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;rawmark-reviews__breakdown&quot;&gt;
+      &lt;!-- wp:surecart/product-review-breakdown {&quot;columns&quot;:2} /--&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;!-- /wp:surecart/product-review-summary --&gt;
+
+  &lt;div class=&quot;rawmark-reviews__actions&quot;&gt;
+    &lt;!-- wp:surecart/product-review-add-button {&quot;width&quot;:100} /--&gt;
+  &lt;/div&gt;
+
+  &lt;!-- wp:surecart/product-review-template {&quot;layout&quot;:{&quot;type&quot;:&quot;grid&quot;,&quot;columnCount&quot;:1}} --&gt;
+  &lt;article class=&quot;rawmark-review&quot;&gt;
+    &lt;header class=&quot;rawmark-review__head&quot;&gt;
+      &lt;span class=&quot;rawmark-review__who&quot;&gt;
+        &lt;!-- wp:surecart/product-review-reviewer-name /--&gt;
+        &lt;!-- wp:surecart/product-review-verified-badge {&quot;label&quot;:&quot;Verified Buyer&quot;} /--&gt;
+      &lt;/span&gt;
+      &lt;!-- wp:surecart/product-review-date {&quot;format&quot;:&quot;human-diff&quot;} /--&gt;
+    &lt;/header&gt;
+    &lt;!-- wp:surecart/product-review-rating-stars /--&gt;
+    &lt;!-- wp:surecart/product-review-title /--&gt;
+    &lt;!-- wp:surecart/product-review-content /--&gt;
+  &lt;/article&gt;
+  &lt;!-- /wp:surecart/product-review-template --&gt;
+
+  &lt;!-- /wp:surecart/product-reviews --&gt;
+  &lt;!-- /wp:surecart/product-review-list --&gt;
+&lt;/section&gt;
+
+&lt;!-- RELATED PRODUCTS --&gt;
+&lt;section class=&quot;rawmark-related&quot;&gt;
+  &lt;h2 class=&quot;rawmark-related__heading&quot;&gt;You may also like&lt;/h2&gt;
+
+  &lt;!-- wp:surecart/product-list-related --&gt;
+  &lt;!-- wp:surecart/product-template --&gt;
+  &lt;div class=&quot;rawmark-card&quot;&gt;
+    &lt;!-- wp:cover {&quot;useFeaturedImage&quot;:true,&quot;dimRatio&quot;:0,&quot;isUserOverlayColor&quot;:true,&quot;style&quot;:{&quot;dimensions&quot;:{&quot;aspectRatio&quot;:&quot;1&quot;}}} --&gt;
+    &lt;div class=&quot;wp-block-cover&quot;&gt;&lt;span aria-hidden=&quot;true&quot; class=&quot;wp-block-cover__background has-background-dim-0 has-background-dim&quot;&gt;&lt;/span&gt;&lt;div class=&quot;wp-block-cover__inner-container&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;!-- /wp:cover --&gt;
+    &lt;div class=&quot;rawmark-card__body&quot;&gt;
+      &lt;!-- wp:surecart/product-title {&quot;level&quot;:3} /--&gt;
+      &lt;div class=&quot;rawmark-card__price&quot;&gt;
+        &lt;!-- wp:surecart/product-list-price /--&gt;
+        &lt;!-- wp:surecart/product-scratch-price /--&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;!-- /wp:surecart/product-template --&gt;
+  &lt;!-- /wp:surecart/product-list-related --&gt;
+&lt;/section&gt;
+
+
+  &lt;/div&gt;
+
+&lt;/main&gt;
+&lt;!-- /wp:surecart/product-page --&gt;</code></pre>
+      <p><strong>CSS pane:</strong></p>
+      <pre><code>/* ==========================================================================
+   Product detail — final pass against the confirmed-working HTML
+   structure and SureCart's official developer docs.
+
+   Key finding that resolved a lot of earlier hedging: SureCart's own
+   docs state plainly that v3 dropped Shadow DOM everywhere except
+   Checkout Forms/Pages. The product page, quantity selector, and buy
+   buttons here are plain light-DOM HTML - no ::part() needed, normal
+   CSS selectors work directly. (Checkout, separately, still needs the
+   Shadow DOM / CSS-custom-property approach - different page, not
+   touched here.)
+
+   Quantity selector structure independently confirmed against
+   developer.surecart.com/docs/quantity-selector's own source: parent
+   must carry class sc-quantity-selector, matches what's used below.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --paper: #F0EFE9;
+  --surface: #FFFFFF;
+  --ink: #201E1B;
+  --ink-soft: #4A463F;
+  --muted: #8D877C;
+  --line: #DEDACF;
+  --pine: #2E5C46;
+  --pine-deep: #1F4432;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
+  --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --radius: 6px;
+  --max-width: 1180px;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+
+/* ---- Layout: outer main + the real two-column container ---- */
+
+.rawmark-product {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-5) var(--space-8);
+}
+
+.rawmark-product__container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
+}
+@media (max-width: 780px) { .rawmark-product__container { grid-template-columns: 1fr; } }
+
+.rawmark-product__media { grid-column: 1; }
+.rawmark-product__info { grid-column: 2; }
+@media (max-width: 780px) { .rawmark-product__media, .rawmark-product__info { grid-column: 1; } }
+
+/* ---- Media ---- */
+
+.rawmark-product .sc-image-media {
+  max-width: 520px;
+  margin: 0 auto;
+}
+@media (max-width: 780px) {
+  .rawmark-product .sc-image-media { max-width: 100%; }
+}
+.rawmark-product .wp-block-surecart-product-media {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.rawmark-product .wp-block-surecart-product-media figure { margin: 0; }
+.rawmark-product .wp-block-surecart-product-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 560px;
+  object-fit: contain;
+}
+@media (max-width: 780px) {
+  .rawmark-product .wp-block-surecart-product-media { max-width: 100%; }
+  .rawmark-product .wp-block-surecart-product-media img { max-height: 400px; }
+}
+.rawmark-product .lightbox-trigger {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ---- Heading: title + price ---- */
+
+.rawmark-product__heading { margin-bottom: var(--space-4); }
+
+.rawmark-product .wp-block-surecart-product-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.rawmark-product__price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+.rawmark-product .wp-block-surecart-product-selected-price-amount {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pine);
+}
+.rawmark-product .wp-block-surecart-product-selected-price-scratch-amount {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--muted);
+  text-decoration: line-through;
+  margin-right: var(--space-2);
+}
+.rawmark-product .wp-block-surecart-product-sale-badge:not([hidden]) {
+  display: inline-block;
+  width: fit-content;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--pine) !important;
+  color: var(--surface) !important;
+  padding: 3px 8px !important;
+  border-radius: 3px !important;
+  margin-left: var(--space-2);
+}
+
+/* ==========================================================================
+   Extended product page: collections, rating, price meta, variants,
+   price chooser, ad-hoc, reviews, related products.
+   ========================================================================== */
+
+/* ---- Collection tags ---- */
+.rawmark-product .wp-block-surecart-product-collection-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-3); }
+.rawmark-product .wp-block-surecart-product-collection-tag,
+.rawmark-product .wp-block-surecart-product-collection-tag a {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--pine); text-decoration: none;
+  border: 1px solid var(--pine); border-radius: 999px; padding: 3px 10px;
+}
+.rawmark-product .wp-block-surecart-product-collection-tag a:hover { background: var(--pine); color: var(--surface); }
+
+/* ---- Rating summary row ---- */
+.rawmark-product__rating { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: 13px; color: var(--muted); }
+.rawmark-product__rating svg { width: 14px; height: 14px; }
+
+/* ---- Interval text in the price row ---- */
+.rawmark-product .wp-block-surecart-product-selected-price-interval { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+
+/* ---- Price meta: trial + setup fee ---- */
+.rawmark-product__price-meta { display: flex; gap: var(--space-3); margin: var(--space-2) 0 0; font-size: 12px; color: var(--muted); }
+
+/* ---- Variant pills ---- */
+.rawmark-product__variants { margin: 0 0 var(--space-5); }
+.rawmark-product__variants fieldset { border: 0; margin: 0 0 var(--space-3); padding: 0; }
+.rawmark-product__variants legend,
+.rawmark-product__variants .sc-form-label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin: 0 0 var(--space-2); padding: 0; }
+.rawmark-product__variants button {
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 14px; margin: 0 6px 6px 0; cursor: pointer;
+}
+.rawmark-product__variants button:hover { border-color: var(--pine); color: var(--pine); }
+.rawmark-product__variants button[aria-checked="true"],
+.rawmark-product__variants button.is-selected,
+.rawmark-product__variants button.sc-selected { border-color: var(--pine); color: var(--pine); box-shadow: inset 0 0 0 1px var(--pine); }
+
+/* ---- Price chooser rows ---- */
+.rawmark-product__price-choices { margin: 0 0 var(--space-5); }
+.rawmark-product .wp-block-surecart-product-price-choice-template {
+  display: flex; align-items: baseline; gap: var(--space-2); width: 100%;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-2); cursor: pointer;
+}
+.rawmark-product .wp-block-surecart-product-price-choice-template:hover { border-color: var(--pine); }
+.rawmark-product .wp-block-surecart-product-price-choice-template:has(:checked) { border-color: var(--pine); box-shadow: inset 0 0 0 1px var(--pine); }
+.rawmark-product .wp-block-surecart-price-name { font-weight: 600; font-size: 14px; }
+.rawmark-product .wp-block-surecart-price-amount,
+.rawmark-product .wp-block-surecart-price-scratch-amount { font-family: var(--font-mono); }
+.rawmark-product .wp-block-surecart-price-scratch-amount { color: var(--muted); text-decoration: line-through; font-size: 12px; }
+
+/* ---- Ad-hoc (pay what you want) ---- */
+.rawmark-product__adhoc { margin: 0 0 var(--space-5); }
+.rawmark-product__adhoc input {
+  width: 140px; font-family: var(--font-mono); font-size: 14px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink);
+}
+
+/* ---- Reviews ---- */
+.rawmark-reviews { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-5) var(--space-8); }
+.rawmark-reviews__heading { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--ink); margin: 0 0 var(--space-5); }
+.rawmark-reviews__summary {
+  display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: center;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: var(--space-5); margin: 0 0 var(--space-5);
+}
+.rawmark-reviews__average { display: flex; align-items: center; gap: var(--space-3); }
+.rawmark-reviews__average .wp-block-surecart-product-review-average-rating-value { font-family: var(--font-display); font-size: 32px; font-weight: 600; color: var(--ink); }
+.rawmark-reviews__breakdown { flex: 1; min-width: 240px; }
+.rawmark-reviews__actions { margin: 0 0 var(--space-5); }
+.rawmark-review { border-bottom: 1px solid var(--line); padding: var(--space-5) 0; }
+.rawmark-review__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-2); font-size: 13px; color: var(--muted); }
+.rawmark-review__who { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 500; color: var(--ink); }
+.rawmark-review .wp-block-surecart-product-review-title { font-size: 16px; font-weight: 700; color: var(--ink); margin: var(--space-2) 0; }
+.rawmark-review .wp-block-surecart-product-review-content { font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+
+/* ---- Related products ---- */
+.rawmark-related { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-5) var(--space-8); }
+.rawmark-related__heading { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--ink); margin: 0 0 var(--space-5); }
+.rawmark-related .wp-block-surecart-product-template { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-5); }
+.rawmark-related .wp-block-surecart-product-template > li { list-style: none; }
+.rawmark-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.rawmark-card .wp-block-cover { margin: 0; min-height: 0; }
+.rawmark-card__body { padding: var(--space-4); }
+.rawmark-card__body .wp-block-surecart-product-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--ink); margin: 0 0 var(--space-2); }
+.rawmark-card__price { display: flex; align-items: baseline; gap: var(--space-2); font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
+.rawmark-card__price .wp-block-surecart-product-scratch-price { color: var(--muted); text-decoration: line-through; font-size: 12px; }</code></pre>
+    </section>
+
+    <section id="naming">
+      <h2>Naming &amp; formatting</h2>
+      <p>Not enforced by the editor. This is what keeps a page readable when you return to it later.</p>
+      <ul>
+        <li><strong>Class names:</strong> kebab-case. A <code>block__element--modifier</code> pattern survives being read out of context.</li>
+        <li><strong>Prefix per page:</strong> a short prefix per page (<code>lp__</code>, <code>pricing__</code>). Costs nothing, and matters the moment content moves between pages.</li>
+        <li><strong>Never use the <code>rawmark-</code> prefix</strong> for your own classes. It's reserved for classes Rawmark itself adds (like the <code>rawmark-page</code> body class).</li>
+        <li><strong>Indentation:</strong> two spaces, in all three panes.</li>
+        <li><strong>Attributes:</strong> lowercase, double-quoted.</li>
+        <li><strong>Section banners:</strong> a comment above each major block. In a single-file page with no folder structure, comments are the only navigation you get.</li>
+      </ul>
+    </section>
+
+    <section id="a11y">
+      <h2>Accessibility baseline</h2>
+      <p>A visual builder handles some of this automatically. Rawmark handles none of it, so treat this as the minimum bar:</p>
+      <ul>
+        <li>Exactly one <code>&lt;h1&gt;</code>, heading levels that descend without skipping</li>
+        <li>Landmarks: <code>&lt;main&gt;</code>, and <code>&lt;nav&gt;</code>/<code>&lt;header&gt;</code>/<code>&lt;footer&gt;</code> where they apply</li>
+        <li>Every image has <code>alt</code> (empty <code>alt=""</code> for decorative images, never a missing attribute)</li>
+        <li>Every form input has a real <code>&lt;label&gt;</code>, not a placeholder standing in for one</li>
+        <li>Visible focus states: replace <code>outline: none</code>, don't just remove it</li>
+        <li>Text contrast at 4.5:1 or better</li>
+        <li>Interactive elements are <code>&lt;button&gt;</code> or <code>&lt;a&gt;</code>, never a <code>&lt;div&gt;</code> with a click handler</li>
+      </ul>
+    </section>
+
+    <section id="failsafe">
+      <h2>The fail-safe rule</h2>
+      <p class="lede">One rule, applied identically everywhere in the system: a broken or missing reference resolves to nothing. Never a fatal error, never a warning banner on the live page.</p>
+      <p>A Snippet marker pointing at a deleted Snippet, a Header/Footer Template pointing at a deleted Snippet, a Post Template that's never been set, a Post Loop whose <code>category</code> slug has a typo and matches nothing: all of these render as empty, exactly as if that content were never there. Write your templates and loops knowing that an empty result is a valid, unremarkable outcome, not a signal that something crashed.</p>
+      <p>One exception: this silence applies to <em>references</em>, not to <em>malformed markup</em>. An unclosed <code>post_loop</code> doesn't fail safe. See the callout in <a href="#post-loop">Post Loop</a> above.</p>
+    </section>
+
+    <section id="trust">
+      <h2>Trust model</h2>
+      <p>Writing to the HTML/CSS/JS panes requires the <code>rawmark_edit_code</code> capability, granted to Administrators only by default. Pane content is <strong>not sanitized on output</strong>, by design: the same trust level as editing a theme's PHP files directly, not the trust level of a comment field. Anyone holding that capability can write arbitrary JavaScript that runs for every visitor, or reference any registered shortcode, which runs whatever PHP that shortcode's plugin defined.</p>
+      <p>Grant it accordingly. It is not a role for a general content editor.</p>
+    </section>
+
+    <section id="limits">
+      <h2>Size limits</h2>
+      <div class="two-col">
+        <div class="field-card"><span class="name">Soft warning</span><p class="desc">256&nbsp;KB combined across all three panes. The editor flags it, but saving still works.</p></div>
+        <div class="field-card"><span class="name">Hard cap, per pane</span><p class="desc">1&nbsp;MB. A save past this is rejected.</p></div>
+        <div class="field-card"><span class="name">Hard cap, combined</span><p class="desc">2&nbsp;MB across HTML + CSS + JS together.</p></div>
+        <div class="field-card"><span class="name">Post Loop count</span><p class="desc">Clamped to 50 matching posts, regardless of what's requested.</p></div>
+      </div>
+    </section>
+
+    <section id="editor">
+      <h2>Editor conventions</h2>
+      <p>The three-pane editor adapts to what you're editing:</p>
+      <ul>
+        <li><strong>A Page or Post:</strong> title is editable, the status pill shows Draft/Published, and there are two save actions: <em>Save draft</em> and <em>Publish</em>/<em>Update</em>. "Save as Snippet," the header/footer selects, and "Insert Snippet" all appear only here.</li>
+        <li><strong>A Snippet:</strong> title is read-only (renaming isn't supported yet), no status pill, and a single <em>Save</em> button. Snippets have no draft/publish state to choose between.</li>
+      </ul>
+      <p>"Insert Media" (the image icon in the toolbar) works in both contexts and inserts at the cursor in whichever pane is active. The <strong>Render blocks</strong> checkbox also appears in both, and saves on its own the moment you toggle it — no separate Save needed. A Snippet additionally gets a <strong>Preview as</strong> picker, since it has no post of its own to render against; choosing a real post or product there is what makes merge tags and product blocks resolve in the preview pane.</p>
+    </section>
+
+    <section id="not-built">
+      <h2>Not built yet</h2>
+      <p>Stated plainly, so nothing here gets assumed into existence:</p>
+      <ul>
+        <li><strong>No placeholder tokens.</strong> A Snippet has no <code>{{variable}}</code> substitution system. Its content is exactly what's stored, resolved live per the rule above.</li>
+        <li><strong>No shared/global stylesheet feature.</strong> Nothing writes a site-wide CSS file for you; link your own if you want one shared across pages.</li>
+        <li><strong>No MCP or AI-agent abilities are registered.</strong> Nothing in the plugin currently exposes page/snippet operations to an external agent.</li>
+        <li><strong>SEO title, SEO description, and the <code>wp_head</code>/<code>wp_footer</code> toggles exist in the data model but have no editor UI and are not writable over the REST API.</strong> In practice every page uses the real post/page title, no meta description, and both hooks always fire. (<code>enable_blocks</code> was in this list until it got the <strong>Render blocks</strong> checkbox — see <a href="#surecart">SureCart &amp; blocks</a>.)</li>
+      </ul>
+    </section>
+
+  </main>
+</div>

@@ -1,6 +1,6 @@
 {
   "name": "rawmark",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Split-pane raw HTML/CSS/JS editor for WordPress with a clean standalone frontend render.",
   "license": "GPL-2.0-or-later",
