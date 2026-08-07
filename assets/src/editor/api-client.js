@@ -55,3 +55,10 @@ export function saveSnippet(id, data) {
     body: JSON.stringify(data),
   });
 }
+
+export function renderPreview(data) {
+  return request('/preview', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
