@@ -2,13 +2,11 @@
 
 ## Just landed on main
 
-Eighteen pieces merged and pushed to `origin/main` (now at `2bca8a2`,
-tagged `v0.3.0`). First nine unchanged from the last handoff; 10-18 are
-new since then. **Item 18
-(Gutenberg block rendering, for SureCart Cart/Checkout) is implemented,
-unit-tested, and now committed/tagged/released, but still NOT verified
-live in a real browser** - see "In progress: still needs a live check"
-below, read that section first if picking this up.
+Twenty-one pieces merged and pushed to `origin/main` (now at `78c1bed`,
+tagged `v0.3.1`). First nine unchanged from the last handoff; 10-21 are
+new since then. Items 19-21 are the SureCart work and are the ones worth
+reading first if picking this up cold - 21 in particular corrects a
+wrong claim items 18-19 were built on.
 
 1. **Linked snippets backend** — `rawmark_snippet` post type, `_rawmark_linked`
    flag, placement finder, render-time composer (marker expansion +
@@ -174,6 +172,80 @@ below, read that section first if picking this up.
     inert HTML comments. Full detail and exact status in "In progress:
     still needs a live check" immediately below - read that section
     before touching this, not just this summary.
+19. **Post Template generalized to any selectable post type.** It was
+    hardcoded to the built-in `post` in exactly two places
+    (`Router::is_rawmark_page()`'s `is_singular( 'post' )`, and
+    `code-page.php`'s `'post' === $post->post_type` merge-tag gate). Both
+    now consult a real site-wide whitelist, new
+    `Rawmark\Storage\PostTemplateTypes` (option
+    `rawmark_post_template_types`, same get/set shape as
+    `TemplateOption`/`ShopRedirect`). Default when unset: `['post']`, plus
+    `'sc_product'` the moment `post_type_exists( 'sc_product' )` - the
+    same optional-integration-detection intent `SettingsScreen` already
+    used for WooCommerce, just against the post type rather than a plugin
+    class. `selectable_types()` excludes `rawmark_snippet`, `attachment`,
+    and `page` (a Page has its own per-item flag and never resolves
+    post-data merge tags - letting it in would blur that). Checkbox list
+    on `Rawmark → Settings`. **One real trap found and guarded:**
+    `is_singular( array() )` does NOT mean "match nothing" - WP_Query
+    treats an empty array as no type restriction and matches every
+    singular request, so unchecking every box would have made Post
+    Template take over the whole site. Explicit `array() === $types`
+    early-return, with a regression test.
+20. **Server-rendered live preview.** The editor's preview was built
+    entirely client-side (`assets/src/editor/preview.js` concatenated the
+    three panes into an `iframe.srcdoc`), so `do_shortcode()`/`do_blocks()`
+    never ran and shortcodes showed as literal text while editing. New
+    `POST /rawmark/v1/preview` (`Rawmark\Rest\PreviewController`) runs the
+    same composition `code-page.php` does and returns a whole document;
+    the client just assigns it to `srcdoc`. Debounced, and skipped
+    entirely while the Code-only tab is active. A Snippet has no post of
+    its own, so it also gained a **Preview as** picker
+    (`_rawmark_preview_post_id` meta, candidates pulled from core's own
+    `/wp/v2/{type}` - no new list endpoint). **Two things that bit and are
+    worth knowing:** (a) a REST request has no front-end query, so
+    `prime_query_for()` has to run *before* the `do_blocks()` pass, not
+    just before `wp_head()` - `render_block()` seeds each block's
+    postId/postType context from the global `$post`, and SureCart's
+    product-page resolves `get_the_ID()` itself, so priming late rendered
+    a blank preview; (b) the preview iframe is sandboxed without
+    `allow-same-origin` by design, so block **JavaScript** cannot run in
+    it - judge layout there, judge interactions on the live URL.
+21. **SureCart as a real markup-layer target - and a correction.** Items
+    18-19 were built on the claim that id-less SureCart shortcodes
+    (`[sc_product_price]` etc.) resolve the current product on their own.
+    **That claim was wrong.** SureCart's product child blocks declare
+    `"ancestor": ["surecart/product-page", ...]` in their `block.json`;
+    that parent is what supplies product context, calls
+    `wp_interactivity_state()`, emits the `<form data-wp-interactive>`
+    element, and enqueues the `@surecart/product-page` script module.
+    Standalone, the children emit structure with empty values and dead
+    controls. Only `[sc_product_title]` and `[sc_product_description]`
+    work alone (they read the `sc_get_product()` PHP global) - which is
+    exactly what made this a trap rather than an obvious failure.
+    **How the wrong claim passed review:** the "verification" asserted
+    that the title rendered and that no literal `[sc_product_` brackets
+    remained. Both were true. But brackets disappearing only proves the
+    shortcodes *executed*, not that they *produced output*. Assert on the
+    output you care about, not on the absence of the un-rendered input.
+    The working pattern - confirmed against real product post 143 through
+    the real render path - is to wrap hand-written markup in a real
+    `<!-- wp:surecart/product-page --> ... <!-- /wp:surecart/product-page -->`
+    block; `product-page/view.php` ends in `echo do_blocks( $block_content )`,
+    so arbitrary non-block HTML inside passes straight through. No new
+    render pipeline was needed. What *was* missing: `enable_blocks` had no
+    way to be turned on (no REST route accepted it - both controllers
+    hard-reused `$current['settings']`), so it now round-trips through a
+    narrowed `Source::merge_writable_settings()` (only `enable_blocks` is
+    writable; `seo_title`/`use_wp_head`/etc. stay PHP-only) behind a
+    **Render blocks** checkbox in the editor topbar. Also fixed here: a
+    regression from item 20 where the CodeMirror pane-mount effect
+    depended on `schedulePreview`, so any callback identity change
+    destroyed all three panes and the re-run's
+    `if ( paneInstances.current[key] ) return;` guard saw the stale
+    destroyed instance and never rebuilt them - picking a preview target
+    blanked the editor. Panes now read the scheduler through a ref with
+    `[]` deps: mount once per session, immune to callback churn.
 
 ## In progress: still needs a live check - Gutenberg block rendering
 
@@ -443,15 +515,19 @@ memory (`future_goal_snippet_docs_app.md`) — both say to come back here
 and to `_planning/IMPLEMENTATION-STATUS.md` for context before scoping
 it. Nothing to do here unless that work actually starts.
 
-## Distribution: v0.3.0 is on GitHub Releases now
+## Distribution: v0.3.1 is on GitHub Releases now
 
-`github.com/sumitIsLearning/Rawmark/releases/tag/v0.3.0` - zip and
+`github.com/sumitIsLearning/Rawmark/releases/tag/v0.3.1` - zip and
 `SKILL.md` both attached as release assets (same two files
-`RAWMARK-GUIDE.html`'s two `.dl-btn` links point at). Shipped specifically
-so item 18 (Gutenberg block rendering) could be downloaded and tested
-against the real installed SureCart site, since no browser-automation
-tool is available in this environment to verify it live directly - see
-item 18 above.
+`RAWMARK-GUIDE.html`'s two `.dl-btn` links point at). Carries items 19-21:
+the Post Template post-type whitelist, the server-rendered preview, and
+the SureCart markup-layer correction plus the **Render blocks** checkbox.
+
+**Note on the version number:** 19-21 are feature work, so semver would
+argue for `0.4.0` rather than a `0.3.1` patch. The tag was already cut and
+pushed as `0.3.1` before that was raised, and re-tagging a pushed tag is
+worse than the inconsistency - left as-is deliberately. Worth landing the
+next feature batch on `0.4.0` so the numbering stops drifting.
 
 Process, same as v0.1.0/v0.2.0's: bump `Version:` in `rawmark.php` and
 `RAWMARK_VERSION` in the same file, commit, `git tag -a vX.Y.Z`, push the
