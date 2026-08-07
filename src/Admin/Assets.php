@@ -7,6 +7,7 @@
 
 namespace Rawmark\Admin;
 
+use Rawmark\Storage\PostTemplateTypes;
 use Rawmark\Support\Hookable;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -59,12 +60,37 @@ final class Assets implements Hookable {
 			'rawmark-editor',
 			'rawmarkEditor',
 			array(
-				'restUrl'     => esc_url_raw( rest_url( 'rawmark/v1' ) ),
-				'nonce'       => wp_create_nonce( 'wp_rest' ),
-				'postId'      => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
-				'homeUrl'     => esc_url_raw( home_url( '/' ) ),
-				'snippetsUrl' => SnippetsScreen::url(),
+				'restUrl'      => esc_url_raw( rest_url( 'rawmark/v1' ) ),
+				'wpRestRoot'   => esc_url_raw( rest_url() ),
+				'nonce'        => wp_create_nonce( 'wp_rest' ),
+				'postId'       => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
+				'homeUrl'      => esc_url_raw( home_url( '/' ) ),
+				'snippetsUrl'  => SnippetsScreen::url(),
+				'previewTypes' => $this->preview_types(),
 			)
 		);
+	}
+
+	/**
+	 * @return array<int, array{type: string, restBase: string, label: string}>
+	 */
+	public function preview_types(): array {
+		$types = array();
+
+		foreach ( PostTemplateTypes::selectable_types() as $post_type ) {
+			$object = get_post_type_object( $post_type );
+
+			if ( ! $object ) {
+				continue;
+			}
+
+			$types[] = array(
+				'type'     => $post_type,
+				'restBase' => $object->rest_base ? $object->rest_base : $post_type,
+				'label'    => $object->labels->name,
+			);
+		}
+
+		return $types;
 	}
 }
