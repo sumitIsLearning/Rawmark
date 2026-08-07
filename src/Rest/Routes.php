@@ -19,10 +19,12 @@ final class Routes implements Hookable {
 
 	private PagesController $pages_controller;
 	private SnippetsController $snippets_controller;
+	private PreviewController $preview_controller;
 
-	public function __construct( PagesController $pages_controller, SnippetsController $snippets_controller ) {
+	public function __construct( PagesController $pages_controller, SnippetsController $snippets_controller, PreviewController $preview_controller ) {
 		$this->pages_controller    = $pages_controller;
 		$this->snippets_controller = $snippets_controller;
+		$this->preview_controller  = $preview_controller;
 	}
 
 	public function register(): void {
@@ -125,6 +127,43 @@ final class Routes implements Hookable {
 								return is_string( $value );
 							},
 						),
+					),
+				),
+			)
+		);
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/preview',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this->preview_controller, 'render_preview' ),
+				'permission_callback' => array( $this->preview_controller, 'check_permission' ),
+				'args'                => array(
+					'postId'        => array(
+						'required'          => true,
+						'validate_callback' => static function ( $value ): bool {
+							return is_numeric( $value ) && (int) $value > 0;
+						},
+					),
+					'previewPostId' => array(
+						'validate_callback' => static function ( $value ): bool {
+							return is_numeric( $value ) && (int) $value >= 0;
+						},
+					),
+					'html'          => array(
+						'validate_callback' => static function ( $value ): bool {
+							return is_string( $value );
+						},
+					),
+					'css'           => array(
+						'validate_callback' => static function ( $value ): bool {
+							return is_string( $value );
+						},
+					),
+					'js'            => array(
+						'validate_callback' => static function ( $value ): bool {
+							return is_string( $value );
+						},
 					),
 				),
 			)

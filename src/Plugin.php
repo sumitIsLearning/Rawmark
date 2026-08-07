@@ -22,6 +22,7 @@ use Rawmark\Frontend\ShopArchiveRedirect;
 use Rawmark\Migration\Migrator;
 use Rawmark\PostType\Snippet;
 use Rawmark\Rest\PagesController;
+use Rawmark\Rest\PreviewController;
 use Rawmark\Rest\Routes;
 use Rawmark\Rest\SnippetsController;
 use Rawmark\Security\Capabilities;
@@ -46,7 +47,7 @@ final class Plugin {
 		/** @var Hookable[] $services */
 		$services = array(
 			new Capabilities(),
-			new Routes( new PagesController(), new SnippetsController() ),
+			new Routes( new PagesController(), new SnippetsController(), new PreviewController() ),
 			new Router(),
 			$editor_screen,
 			new Assets( $editor_screen ),
